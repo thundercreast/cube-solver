@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nightshift Chess · Personal Chess Tutor</title>
+<meta name="description" content="Nightshift Chess: a responsive personal chess tutor with live analysis, position scanning, game replay and custom SVG chess pieces.">
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#090d11;--surface:#111820;--surface2:#18222b;--line:#2a3740;--text:#edf3ed;--muted:#a4b0b4;--accent:#d5f06a;--cream:#e8e6d9;--sage:#66747a;--red:#f0b1a7;--gold:#d5f06a;--shadow:0 12px 28px #0005;--mono:"IBM Plex Mono",ui-monospace,monospace;--body:"Space Grotesk",Inter,system-ui,sans-serif;--piece-detail:#87939a}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text)}body{font:14px/1.45 var(--body);overflow:hidden}.gameOnly{display:none}body[data-mode="game"] .tutorOnly{display:none!important}body[data-mode="game"] .gameOnly{display:block}button,select,input{font:inherit}button{touch-action:manipulation}
+.app-shell{width:100%;height:100dvh;min-height:680px;max-width:1900px;margin:0 auto;padding:10px 14px 12px;display:grid;grid-template-rows:48px 48px minmax(0,1fr);gap:8px;background:radial-gradient(ellipse at 10% 0%,#17231c 0,transparent 38%),var(--bg)}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);padding:0 2px 8px;min-width:0}
+.brand{display:flex;align-items:center;gap:10px;min-width:210px}.mark{width:34px;height:34px;border-radius:3px;background:var(--accent);color:#11180f;display:grid;place-items:center}.mark svg{width:23px;height:23px;fill:currentColor}.brand .eyebrow{font:700 9px var(--mono);letter-spacing:.15em;color:var(--muted);text-transform:uppercase}.brand h1{font-size:17px;line-height:1.1;margin:2px 0 0;letter-spacing:-.04em}
+.top-nav{display:flex;align-items:center;gap:22px;color:var(--muted);font:700 9px var(--mono);letter-spacing:.1em;text-transform:uppercase}.top-nav a{color:inherit;text-decoration:none;padding:8px 0;position:relative}.top-nav a.active{color:var(--text)}.top-nav a.active:after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:2px;background:var(--accent)}
+.header-right{display:flex;align-items:center;gap:9px}.engine-pill.offline{color:var(--muted);border-color:var(--line)}.engine-pill{border:1px solid #40513b;color:var(--accent);border-radius:3px;padding:6px 9px;font:700 9px var(--mono);letter-spacing:.08em}.avatar{width:28px;height:28px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font:700 9px var(--mono)}.profile{font-size:10px;font-weight:700}.profile small{display:block;color:var(--muted);font-size:9px;font-weight:400}
+.modebar{display:flex;align-items:center;gap:7px;margin:0;padding:0;min-width:0}.modebtn{min-width:0;border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:3px;padding:8px 13px;text-align:left;cursor:pointer}.modebtn b{display:block;font-size:11px;line-height:1.15}.modebtn small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.modebtn.active{background:var(--accent);border-color:var(--accent);color:#11180f}.modebtn.active small{color:#34412a}.mode-note{margin-left:auto;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewport{display:grid;grid-template-rows:minmax(0,1fr) 132px;gap:9px;min-height:0;overflow:hidden}
+main.workspace{display:grid;grid-template-columns:minmax(440px,.86fr) minmax(590px,1.14fr);gap:10px;min-height:0;min-width:0;padding:0;margin:0;max-width:none}.board-column,.right{min-width:0;min-height:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px;box-shadow:var(--shadow);min-width:0}
+.board-card{height:100%;display:grid;grid-template-rows:27px minmax(0,1fr) auto 30px;gap:7px;padding:11px}.boardtop{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:0}.boardtop #turnLabel{font-weight:750;color:var(--text);font-size:12px}.engine-badge{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font:10px var(--mono);color:var(--accent)}.engine-dot{width:7px;height:7px;border-radius:50%;background:#78857a}.engine-dot.ready{background:var(--accent);box-shadow:0 0 10px #d5f06a77}
+.boardwrap{position:relative;display:grid;place-items:center;min-height:0;width:100%;overflow:hidden;background:transparent}
+.board{position:relative;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:min(100%,calc(100vh - 350px));height:auto;aspect-ratio:1;max-height:100%;touch-action:none;border:5px solid #39464c;background:#39464c;box-shadow:0 8px 22px #0005;overflow:hidden}
+.sq{min-width:0;min-height:0;width:100%;height:100%;border:0;padding:0;display:grid;place-items:center;position:relative;cursor:pointer;border-radius:0}.sq.light{background:var(--cream)}.sq.dark{background:var(--sage)}.sq.selected{box-shadow:inset 0 0 0 3px var(--accent)}.sq.last{background:#a4b66c}.sq.check{box-shadow:inset 0 0 0 5px #d95a50}.sq.legal:after{content:"";position:absolute;width:19%;height:19%;border-radius:50%;background:#183f2b99;z-index:1}.sq.capture:after{content:"";position:absolute;inset:4px;border:3px solid #235638bb;border-radius:50%;z-index:1}
+.piece{width:82%;height:82%;display:grid;place-items:center;font-size:0;line-height:1;user-select:none;position:relative;z-index:2;cursor:grab;transition:transform .12s ease,filter .12s ease;background:none!important;box-shadow:none!important;text-shadow:none!important}.piece svg{width:100%;height:100%;overflow:visible;display:block}.piece.white{color:#fffdf2}.piece.black{color:#17212b}.piece:active{cursor:grabbing;transform:scale(1.06)}.piece.dragging{opacity:.45;filter:grayscale(.2)}
+.coord{position:absolute;left:4px;top:2px;font:700 9px var(--mono);color:#344238;opacity:.9;z-index:3;pointer-events:none}.sq.dark .coord{color:#fff7e9}.coord.file{left:auto;top:auto;right:4px;bottom:2px}.arrowlayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}.arrowlayer line{stroke:var(--accent);stroke-width:1.15;stroke-linecap:round;opacity:.95;marker-end:url(#arrowhead);filter:drop-shadow(0 1px 2px #142018)}#arrows marker path{fill:var(--accent)!important}
+.controls{display:flex;flex-direction:column;gap:6px;margin:0;padding:0}.control-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.btn,select{border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:3px;padding:7px 10px;cursor:pointer;font-size:11px;min-height:31px}.btn:hover,select:hover{border-color:#778a7c}.btn.primary{background:var(--accent);color:#11180f;border-color:var(--accent);font-weight:800}.btn.gold{background:#35402b;color:#eff6d4;border-color:#64794e}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.small{font-size:10px;padding:6px 9px;min-height:27px}.btn.danger{background:#482b29;border-color:#714440;color:#f2b2a8}.control-row select{padding:6px 9px;min-width:0}#color,#pace{min-width:112px}#moveMode{min-width:142px}#opponentRating{flex:1;min-width:190px}
+.status{margin:0;padding:8px 11px;background:#17241b;border-left:3px solid var(--accent);border-radius:2px;color:var(--accent);font-weight:750;font-size:11px;min-height:30px;display:flex;align-items:center}.status.finished{background:#243b2a;color:#c7f0b7;border:1px solid #5b8552}.status.warning{color:#f1cb83}
+.right{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1.05fr) minmax(0,.98fr) minmax(0,.72fr) auto;gap:9px;overflow:hidden}.right>.card{min-height:0;overflow:auto;padding:10px 12px}.right>#userMovePanel{grid-column:1;grid-row:1}.right>#computerThinkingPanel{grid-column:2;grid-row:1}.right>#positionScanPanel{grid-column:1/-1;grid-row:2}.right>#gameModePanel{grid-column:1/-1;grid-row:3}.right>#postGameAnalysis{grid-column:1/-1;grid-row:4}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.section-title span{font:700 8px var(--mono);color:var(--muted);letter-spacing:.07em;text-align:right}
+.panel h2{font-size:17px;line-height:1.16;margin:0 0 7px;letter-spacing:-.025em}.panel h3{font-size:13px;margin:0 0 6px}.panel p{color:#c5d0d0;margin:7px 0;font-size:11px;line-height:1.4}.muted{color:var(--muted);font-size:10px;line-height:1.38}
+.tag{display:inline-block;font:800 8px var(--mono);text-transform:uppercase;letter-spacing:.11em;border-radius:2px;padding:4px 6px;background:#253628;color:var(--accent);margin-bottom:6px}.tag.gold{background:#343b29;color:var(--accent)}.tag.red{background:#482b29;color:#f0a69c}
+.analysis-section{background:var(--surface2);border:1px solid #2c4032;border-radius:3px;padding:9px;margin-top:7px}.analysis-section .number{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:3px;background:#344b37;color:var(--accent);font-size:10px;font-weight:850;margin-right:6px}.analysis-section h3{display:flex;align-items:center;font-size:11px;color:#e8f0e8}.analysis-section p{font-size:10px;margin:5px 0;color:#cfdbd0}
+.movehistory{display:flex;flex-wrap:wrap;gap:5px;max-height:72px;overflow:auto;align-content:flex-start}.move{background:var(--surface2);border:1px solid var(--line);border-radius:2px;padding:5px 7px;font-size:10px;color:#dce6dd}.move strong{color:var(--muted);margin-right:5px}.move-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.options{display:grid;grid-template-columns:1fr;gap:6px;margin:8px 0}.candidate{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:start;width:100%;text-align:left;background:var(--surface2);border:1px solid #35434a;border-radius:3px;padding:7px 8px;color:var(--text);cursor:pointer}.candidate:hover,.candidate.selected{border-color:var(--accent);background:#1d2b23}.candidate .rank{width:22px;height:22px;border-radius:2px;display:grid;place-items:center;background:#25332b;color:var(--accent);font:800 9px var(--mono)}.candidate b{display:block;font-size:11px}.candidate small{display:block;color:#b9c8bc;font-size:9.5px;margin-top:2px;line-height:1.35}.candidate em{font-style:normal;color:var(--accent);font-size:9px;white-space:nowrap}
+.question{background:#17251c;border:1px solid #46583b;border-radius:3px;padding:8px;margin-top:7px}.question button{display:block;width:100%;text-align:left;margin-top:5px;background:#101820;border:1px solid #35434a;border-radius:2px;padding:7px 8px;color:var(--text);cursor:pointer;font-size:10px}.question button:hover{border-color:var(--accent)}
+.scan-columns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.scan-side{background:var(--surface2);border:1px solid #303f49;border-radius:3px;padding:8px;min-width:0}.scan-side h3{font-size:11px;margin:0 0 6px;display:flex;justify-content:space-between;gap:5px}.scan-side h3 span{font:8px var(--mono);color:var(--muted);font-weight:500}.scan-group{margin:6px 0}.scan-group b{display:block;color:var(--accent);font:800 8px var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}.scan-group p{font-size:9.5px;color:#cfdbd0;margin:0;overflow-wrap:anywhere}
+.thinkingbar{height:3px;background:#304336;border-radius:9px;overflow:hidden;margin-top:8px}.thinkingbar i{display:block;height:100%;width:40%;background:var(--accent);animation:think 1.1s ease-in-out infinite alternate}@keyframes think{to{transform:translateX(150%)}}
+.rating-big{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border-radius:3px;padding:10px}.rating-big strong{display:block;font-size:29px;color:var(--accent);letter-spacing:-.04em}.rating-delta{font-size:10px;color:var(--muted);text-align:right}
+.analysis-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:8px}.analysis-table td,.analysis-table th{padding:6px 5px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.analysis-table th{color:var(--muted);font-weight:650}.analysis-table .good{color:#b9e5a5}.analysis-table .bad{color:#efa399}.analysis-table .warn{color:#ebcd87}
+.viewport-bottom{display:grid;grid-template-columns:minmax(300px,.68fr) minmax(0,1.32fr);gap:9px;min-height:0}.history-panel,.archive-panel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:9px 11px;min-width:0;min-height:0;overflow:hidden}.archive-panel{margin:0}.archive-panel .section-title,.history-panel .section-title{margin-bottom:5px}.archive-row{display:flex;gap:6px;align-items:center;margin-top:6px;min-width:0}.archive-row select{min-width:0;flex:1;padding:6px 8px;font-size:10px}.archive-panel .muted{font-size:9px;margin:5px 0;line-height:1.3}.replay-controls{display:flex;gap:5px;align-items:center;margin-top:6px;flex-wrap:wrap}.replay-controls .muted{margin-left:auto}.replay-slider{width:100%;accent-color:var(--accent);margin:6px 0 1px;height:12px}.replay-slider:disabled{opacity:.35}
+.promotion-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.promotion-options button{font-size:0;padding:8px;background:var(--surface2);border:1px solid var(--line);border-radius:3px;color:white;cursor:pointer;min-height:58px}.promotion-options button svg{width:38px;height:38px;display:block;margin:auto}.promotion-options button.white{color:#fffdf2}.promotion-options button.black{color:#17212b;background:#d5dbe0}
+.overlay{position:fixed;inset:0;background:#050906dd;display:none;align-items:center;justify-content:center;z-index:100;padding:20px}.overlay.open{display:flex}.dialog{width:min(360px,100%);background:#1b2920;border:1px solid var(--line);border-radius:4px;padding:19px;box-shadow:var(--shadow)}.dialog h2{margin:0 0 8px;font-size:19px}
+.mobile-tabs{display:none}footer{display:none}
+@media(min-width:681px) and (max-width:1250px){
+ .app-shell{padding:8px 10px;grid-template-rows:44px 44px minmax(0,1fr);gap:6px}.top-nav{gap:14px;font-size:8px}
+ main.workspace{grid-template-columns:minmax(350px,.82fr) minmax(520px,1.18fr);gap:8px}.viewport{grid-template-rows:minmax(0,1fr) 116px;gap:7px}
+ .board-card{padding:8px;grid-template-rows:23px minmax(0,1fr) auto 28px;gap:5px}.board{width:min(100%,calc(100vh - 340px));border-width:4px}
+ .right{gap:7px;grid-template-rows:minmax(0,1.08fr) minmax(0,1fr) minmax(0,.62fr) auto}.right>.card{padding:7px 8px}
+ .panel h2{font-size:15px}.panel p{font-size:10px}.section-title{font-size:9px}.section-title span{font-size:7px}
+ .candidate{padding:5px 6px;gap:6px}.candidate small{font-size:8.5px}.question{padding:6px;margin-top:4px}.question button{padding:5px 6px;font-size:8px;margin-top:3px}
+ .scan-side{padding:6px}.scan-group{margin:4px 0}.scan-group p{font-size:8px}.scan-group b{font-size:7px}
+ .viewport-bottom{grid-template-columns:.65fr 1.35fr;gap:7px}.history-panel,.archive-panel{padding:7px 8px}.archive-panel .muted{font-size:8px}
+}
+@media(max-width:900px){
+ html,body{height:100%;overflow:hidden}
+ .app-shell{width:100%;height:100dvh;min-height:0;max-height:none;padding:7px 8px 0;grid-template-rows:43px 43px minmax(0,1fr) 58px;gap:5px}
+ .app-header{padding-bottom:5px}.brand{min-width:0;gap:7px}.mark{width:29px;height:29px}.mark svg{width:20px;height:20px}
+ .brand .eyebrow{font-size:7px}.brand h1{font-size:13px}.top-nav,.profile{display:none}.engine-pill{font-size:7px;padding:4px 6px}.avatar{width:24px;height:24px}
+ .modebar{gap:4px;align-items:center}.modebtn{flex:1;padding:7px 7px;min-width:0;text-align:center}.modebtn b{font-size:10px}.modebtn small{font-size:7px}.mode-note{display:none}
+ .viewport{display:block;overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:0 0 8px}
+ main.workspace{display:block;min-height:0}.board-column{display:none}.right{display:block;overflow:visible}
+ .right>.card{display:none;overflow:visible;padding:10px;margin-bottom:7px}
+ body[data-mobile-tab="board"] .board-column{display:block}
+ body[data-mobile-tab="coach"] #userMovePanel,body[data-mobile-tab="coach"] #computerThinkingPanel{display:block}
+ body[data-mobile-tab="scan"] #positionScanPanel{display:block}
+ body[data-mobile-tab="game"] #gameModePanel{display:block!important}
+ body[data-mobile-tab="coach"] #postGameAnalysis[style*="block"]{display:block!important}
+ .board-card{height:auto;display:grid;grid-template-rows:22px auto auto 30px;gap:7px;padding:8px}
+ .boardwrap{width:100%;height:auto;aspect-ratio:1;min-height:0}.board{width:100%;height:100%;max-width:none;max-height:none;aspect-ratio:1;border-width:4px}
+ .coord{font-size:7px;left:3px;top:2px}.boardtop #turnLabel{font-size:11px}.engine-badge{font-size:8px}
+ .controls{gap:6px}.control-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.control-row .btn,.control-row select{min-width:0;width:100%;height:32px;padding:4px 5px;font-size:9px;justify-content:center}.control-row:nth-child(2){grid-template-columns:1fr 1.4fr 1fr}.control-row #opponentRating{grid-column:1/-1}
+ .status{font-size:10px;padding:7px 8px;min-height:34px;line-height:1.3}.right>.card .section-title{font-size:10px}.panel h2{font-size:17px}.panel p{font-size:11px}
+ .candidate{grid-template-columns:26px 1fr auto;padding:8px}.candidate b{font-size:11px}.candidate small{font-size:10px}.question button{font-size:10px;padding:8px}
+ .scan-columns{grid-template-columns:1fr;gap:7px}.scan-side{padding:9px}.scan-side h3{font-size:11px}.scan-group b{font-size:8px}.scan-group p{font-size:10px}
+ .rating-big strong{font-size:35px}.rating-delta{font-size:10px}
+ .viewport-bottom{display:none}
+ body[data-mobile-tab="board"] .viewport-bottom{display:grid;grid-template-columns:1fr;margin-top:7px}body[data-mobile-tab="board"] .archive-panel{display:none}
+ body[data-mobile-tab="library"] .viewport-bottom{display:grid;grid-template-columns:1fr;gap:7px}
+ body[data-mobile-tab="library"] .history-panel,body[data-mobile-tab="library"] .archive-panel{display:block}
+ body[data-mobile-tab="library"] .history-panel{min-height:90px}body[data-mobile-tab="library"] .archive-panel{min-height:230px}
+ body[data-mobile-tab="library"] .replay-controls .muted{width:100%;margin:3px 0}
+ body[data-mobile-tab="library"] .archive-row{flex-wrap:wrap}body[data-mobile-tab="library"] .archive-row select{width:100%;flex:auto}
+ .history-panel,.archive-panel{padding:9px}.history-panel .movehistory{max-height:74px}.archive-panel .section-title{font-size:10px}.archive-panel .muted{font-size:9px}.archive-row select{font-size:10px}
+ .mobile-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;border-top:1px solid var(--line);background:#0d141a;padding:5px 0 6px}
+ .mobile-tabs button{border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:700 8px var(--mono);padding:2px}
+ .mobile-tabs button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mobile-tabs button.active{color:var(--accent)}
+ .promotion-options button svg{width:32px;height:32px}
+}
+@media(max-width:370px){.brand h1{font-size:12px}.modebtn small{display:none}.control-row .btn,.control-row select{font-size:8px}.section-title span{font-size:7px}}
+@media(orientation:landscape) and (max-height:540px) and (min-width:681px){.app-shell{min-height:0}.viewport{grid-template-rows:minmax(0,1fr) 106px}.board{width:min(100%,calc(100vh - 330px))}}
+
+
+/* Accessibility pass: larger type and a fixed, non-scrolling application canvas */
+html,body{width:100%;height:100%;overflow:hidden!important;overscroll-behavior:none}
+/* Panels scroll when their content is taller than the fixed canvas; keep a slim, visible scrollbar so that is discoverable. */
+*{scrollbar-width:thin;scrollbar-color:#3a4a52 transparent}
+*::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-thumb{background:#3a4a52;border-radius:6px}*::-webkit-scrollbar-track{background:transparent}
+.app-shell{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;grid-template-rows:52px 54px minmax(0,1fr);gap:8px}
+.brand .eyebrow{font-size:10px}.brand h1{font-size:20px}
+.top-nav{font-size:10px}.engine-pill{font-size:10px}.profile{font-size:12px}.profile small{font-size:10px}
+.modebtn b{font-size:13px}.modebtn small{font-size:11px}.mode-note{font-size:12px}
+.viewport{grid-template-rows:minmax(0,1fr) clamp(118px,14dvh,145px);overflow:hidden}
+main.workspace{grid-template-columns:minmax(380px,.84fr) minmax(0,1.16fr);gap:10px;min-width:0;min-height:0;overflow:hidden}
+.board-card{grid-template-rows:28px minmax(0,1fr) auto 34px;gap:8px}
+.boardtop{font-size:14px}.boardtop #turnLabel{font-size:14px}.engine-badge{font-size:11px}.coord{font-size:10px}
+.btn,select{font-size:13px;min-height:34px;padding:8px 11px}
+.btn.small{font-size:12px;min-height:30px;padding:7px 10px}
+.status{font-size:13px;min-height:34px}
+.right{grid-template-rows:minmax(0,1fr) minmax(0,1fr) auto auto;gap:9px;overflow:hidden}
+.right>.card{overflow:auto!important;padding:12px 14px;min-height:0}
+.section-title{font-size:13px;margin-bottom:9px}.section-title span{font-size:9px}
+.panel h2{font-size:19px}.panel h3{font-size:15px}.panel p{font-size:13px;line-height:1.42}
+.muted{font-size:12px;line-height:1.4}
+.tag{font-size:9px;padding:5px 7px}
+.analysis-section{padding:10px}.analysis-section h3{font-size:13px}.analysis-section p{font-size:12px}
+.candidate{padding:8px 10px;gap:9px}.candidate b{font-size:13px}.candidate small{font-size:12px}.candidate em{font-size:11px}.candidate .rank{font-size:10px}
+.question button{font-size:12px;padding:8px 10px}
+.scan-side{padding:9px}.scan-side h3{font-size:13px}.scan-side h3 span{font-size:9px}
+.scan-group b{font-size:9px}.scan-group p{font-size:11px;line-height:1.35}
+.rating-delta{font-size:12px}.analysis-table{font-size:12px}
+.viewport-bottom{min-height:0;overflow:hidden}
+.history-panel,.archive-panel{overflow:auto!important;padding:9px 11px}
+.history-panel .section-title,.archive-panel .section-title{font-size:12px}
+.movehistory{max-height:46px!important;overflow:auto!important}
+.move{font-size:11px;padding:4px 6px}
+.archive-panel .muted{font-size:10px}.archive-row select{font-size:12px}
+.right>.card,[style*="overflow:auto"],[style*="overflow:scroll"],.movehistory{overscroll-behavior:none}
+
+@media(min-width:901px){
+ .viewport{grid-template-rows:minmax(0,1fr) clamp(118px,14dvh,145px)}
+ .right>#userMovePanel{grid-column:1;grid-row:1}
+ .right>#computerThinkingPanel{grid-column:2;grid-row:1}
+ .right>#positionScanPanel{grid-column:1/-1;grid-row:2}
+ .right>#gameModePanel{grid-column:1/-1;grid-row:3}
+ .right>#postGameAnalysis{grid-column:1/-1;grid-row:4}
+ /* Game mode hides the two tutor panels: let the game panel take the top row instead of leaving it empty */
+ body[data-mode="game"] .right{grid-template-rows:auto minmax(0,1fr) auto}
+ body[data-mode="game"] .right>#gameModePanel{grid-row:1}
+ body[data-mode="game"] .right>#positionScanPanel{grid-row:2}
+ body[data-mode="game"] .right>#postGameAnalysis{grid-row:3}
+}
+@media(max-width:900px){
+ .app-shell{height:100dvh;min-height:0;max-height:100dvh;padding:7px 8px 0;grid-template-rows:46px 48px minmax(0,1fr) 58px;gap:5px}
+ .app-header{padding-bottom:5px}.brand{min-width:0;gap:7px}.mark{width:30px;height:30px}.mark svg{width:21px;height:21px}
+ .brand .eyebrow{font-size:8px}.brand h1{font-size:16px}
+ .top-nav,.profile{display:none}.engine-pill{font-size:9px;padding:5px 7px}.avatar{width:26px;height:26px}
+ .modebar{gap:5px}.modebtn{flex:1;padding:7px 8px;text-align:center}.modebtn b{font-size:12px}.modebtn small{font-size:10px}.mode-note{display:none}
+ .viewport{display:grid;grid-template-rows:minmax(0,1fr) 92px;gap:5px;min-height:0;padding:0;overflow:hidden}
+ main.workspace{display:block;width:100%;height:100%;min-height:0;overflow:hidden}
+ .board-column{display:none;height:100%;min-height:0}
+ .right{display:block;height:100%;min-height:0;overflow:hidden}
+ .right>.card{display:none;overflow:auto!important;padding:10px;margin:0;min-height:0}
+ .right>#userMovePanel,.right>#computerThinkingPanel,.right>#positionScanPanel,.right>#gameModePanel,.right>#postGameAnalysis{grid-column:1!important;grid-row:auto!important}
+ body[data-mobile-tab="board"] .board-column{display:block}
+ body[data-mobile-tab="board"] .right{display:none}
+ body[data-mobile-tab="coach"] #userMovePanel,body[data-mobile-tab="coach"] #computerThinkingPanel{display:block}
+ body[data-mobile-tab="scan"] #positionScanPanel{display:block}
+ body[data-mobile-tab="game"] #gameModePanel{display:block!important}
+ body[data-mobile-tab="coach"] #postGameAnalysis[style*="block"]{display:block!important}
+ .right:has(#userMovePanel[style*="display: block"]){display:block}
+ .board-card{height:100%;min-height:0;grid-template-rows:21px minmax(0,1fr) auto 32px;gap:5px;padding:7px}
+ .boardwrap{width:min(100%,calc(100dvh - 420px));height:auto;max-width:100%;aspect-ratio:1;min-height:0;margin:auto}
+ .board{width:100%;height:100%;max-width:none;max-height:none;aspect-ratio:1;border-width:4px}
+ .coord{font-size:9px;left:3px;top:2px}.boardtop #turnLabel{font-size:13px}.engine-badge{font-size:9px}
+ .controls{gap:5px}.control-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ .control-row .btn,.control-row select{min-width:0;width:100%;height:34px;padding:4px 5px;font-size:11px;justify-content:center}
+ .control-row:nth-child(2){grid-template-columns:1fr 1.4fr 1fr}.control-row #opponentRating{grid-column:1/-1}
+ .status{font-size:12px;padding:7px 8px;min-height:32px;line-height:1.25}
+ .right>.card .section-title{font-size:12px}.right>.card .section-title span{font-size:9px}
+ .panel h2{font-size:18px}.panel p{font-size:12px;line-height:1.35}.muted{font-size:11px}
+ .candidate{grid-template-columns:24px 1fr auto;padding:7px;gap:6px}.candidate b{font-size:12px}.candidate small{font-size:11px}.question button{font-size:11px;padding:7px}
+ .scan-columns{grid-template-columns:1fr 1fr;gap:6px}.scan-side{padding:7px}.scan-side h3{font-size:11px}.scan-group{margin:5px 0}.scan-group b{font-size:8px}.scan-group p{font-size:10px;line-height:1.3}
+ .rating-big{padding:8px}.rating-big strong{font-size:30px}.rating-delta{font-size:10px}
+ .viewport-bottom{display:none;min-height:0;overflow:hidden}
+ body[data-mobile-tab="board"] .viewport{grid-template-rows:minmax(0,1fr) 92px}
+ body[data-mobile-tab="board"] .viewport-bottom{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);margin:0;height:100%;min-height:0}
+ body[data-mobile-tab="board"] .archive-panel{display:none}
+ body[data-mobile-tab="library"] .viewport{grid-template-rows:minmax(0,1fr)}
+ body[data-mobile-tab="library"] .viewport-bottom{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(70px,.32fr) minmax(0,1fr);gap:5px;height:100%;min-height:0}
+ body[data-mobile-tab="library"] .history-panel,body[data-mobile-tab="library"] .archive-panel{display:block;min-height:0}
+ body[data-mobile-tab="library"] .archive-row{flex-wrap:nowrap;gap:4px}
+ body[data-mobile-tab="library"] .archive-row select{width:auto;min-width:0;flex:1;font-size:11px}
+ body[data-mobile-tab="library"] .archive-row .btn{font-size:10px;padding:5px 6px}
+ body[data-mobile-tab="library"] .replay-controls .muted{width:auto;margin:0 0 0 auto}
+ .history-panel,.archive-panel{padding:7px 8px}.history-panel .movehistory{max-height:34px!important}
+ .archive-panel .section-title{font-size:11px}.archive-panel .muted{font-size:9px;line-height:1.25}.archive-row select{font-size:11px}
+ .mobile-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;border-top:1px solid var(--line);background:#0d141a;padding:5px 0 6px;min-height:0}
+ .mobile-tabs button{font-size:9px;padding:2px}.mobile-tabs button svg{width:19px;height:19px}
+ body[data-mobile-tab="coach"] .viewport,body[data-mobile-tab="scan"] .viewport,body[data-mobile-tab="game"] .viewport{grid-template-rows:minmax(0,1fr)}
+ body[data-mobile-tab="coach"] .right{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:5px}
+ body[data-mobile-tab="scan"] .right,body[data-mobile-tab="game"] .right{display:block}
+}
+@media(max-width:370px){
+ .brand h1{font-size:14px}.modebtn b{font-size:11px}.modebtn small{font-size:9px}
+ .control-row .btn,.control-row select{font-size:10px}
+ .section-title span{font-size:8px}
+ .boardwrap{width:min(100%,calc(100dvh - 405px))}
+}
+
+
+/* Short landscape screens: use focused full-screen tabs instead of clipping panels */
+@media (min-width:901px) and (max-height:620px) and (orientation:landscape){
+ html,body{height:100%;overflow:hidden!important;overscroll-behavior:none}
+ .app-shell{height:100dvh;min-height:0;max-height:100dvh;padding:5px 8px 0;grid-template-rows:40px 42px minmax(0,1fr) 46px;gap:4px;overflow:hidden}
+ .app-header{padding:0 2px 4px}.brand{min-width:0;gap:7px}.mark{width:28px;height:28px}.mark svg{width:19px;height:19px}
+ .brand .eyebrow{font-size:8px}.brand h1{font-size:15px}
+ .top-nav,.profile{display:none}.engine-pill{font-size:9px;padding:4px 7px}.avatar{width:25px;height:25px}
+ .modebar{gap:5px}.modebtn{padding:6px 9px}.modebtn b{font-size:11px}.modebtn small{font-size:9px}.mode-note{font-size:9px}
+ .viewport{display:block;min-height:0;height:100%;overflow:hidden;padding:0}
+ main.workspace{display:block;width:100%;height:100%;min-height:0;overflow:hidden}
+ .board-column{display:none;width:100%;height:100%;min-height:0}
+ .right{display:none!important}
+ .viewport-bottom{display:none!important}
+ .mobile-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;min-height:0;padding:3px 0 4px;border-top:1px solid var(--line);background:#0d141a}
+ .mobile-tabs button{border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:700 9px var(--mono);padding:1px}
+ .mobile-tabs button svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+ .mobile-tabs button.active{color:var(--accent)}
+ /* Board tab: board and controls occupy one fixed-height horizontal workspace */
+ body[data-mobile-tab="board"] .board-column{display:block}
+ body[data-mobile-tab="board"] .board-card{height:100%;min-height:0;padding:6px;gap:6px;display:grid;grid-template-columns:minmax(0,1fr) minmax(175px,.58fr);grid-template-rows:minmax(0,1fr) 32px}
+ body[data-mobile-tab="board"] .boardtop{display:none}
+ body[data-mobile-tab="board"] .boardwrap{grid-column:1;grid-row:1 / 3;width:100%;height:100%;min-height:0}
+ body[data-mobile-tab="board"] .board{width:min(100%,calc(100dvh - 155px));height:auto;max-height:100%;aspect-ratio:1;border-width:3px}
+ body[data-mobile-tab="board"] .controls{grid-column:2;grid-row:1;align-self:center;gap:5px}
+ body[data-mobile-tab="board"] .control-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ body[data-mobile-tab="board"] .control-row .btn,body[data-mobile-tab="board"] .control-row select{width:100%;min-width:0;min-height:29px;height:29px;padding:3px 5px;font-size:10px}
+ body[data-mobile-tab="board"] .control-row:nth-child(2){grid-template-columns:1fr 1fr}
+ body[data-mobile-tab="board"] .control-row #opponentRating{grid-column:1/-1}
+ body[data-mobile-tab="board"] .status{grid-column:2;grid-row:2;align-self:stretch;margin:0;font-size:10px;line-height:1.2;min-height:0;padding:5px 7px}
+ /* Coach tab: show the complete move review and live candidate ideas together */
+ body[data-mobile-tab="coach"] .right{display:grid!important;height:100%;min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:7px;overflow:hidden}
+ body[data-mobile-tab="coach"] #userMovePanel,
+ body[data-mobile-tab="coach"] #computerThinkingPanel{display:block!important;grid-row:1;min-width:0;min-height:0;height:100%;padding:8px;overflow:auto!important}
+ body[data-mobile-tab="coach"] #userMovePanel{grid-column:1}
+ body[data-mobile-tab="coach"] #computerThinkingPanel{grid-column:2}
+ body[data-mobile-tab="coach"] #positionScanPanel,
+ body[data-mobile-tab="coach"] #gameModePanel,
+ body[data-mobile-tab="coach"] #postGameAnalysis{display:none!important}
+ body[data-mobile-tab="coach"] .section-title{font-size:10px;letter-spacing:.04em;margin-bottom:6px;gap:4px}
+ body[data-mobile-tab="coach"] .section-title span{font-size:8px}
+ body[data-mobile-tab="coach"] .panel h2{font-size:14px;line-height:1.12;margin:2px 0 5px}
+ body[data-mobile-tab="coach"] .panel p{font-size:10px;line-height:1.25;margin:4px 0}
+ body[data-mobile-tab="coach"] .tag{font-size:8px;padding:4px 5px;margin-bottom:3px}
+ body[data-mobile-tab="coach"] #userAnalysis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-content:start}
+ body[data-mobile-tab="coach"] #userAnalysis>.tag,
+ body[data-mobile-tab="coach"] #userAnalysis>h2,
+ body[data-mobile-tab="coach"] #userAnalysis>p{grid-column:1/-1}
+ body[data-mobile-tab="coach"] #userAnalysis .analysis-section{min-width:0;margin:0;padding:6px}
+ body[data-mobile-tab="coach"] #userAnalysis .analysis-section h3{font-size:10px;line-height:1.15;display:block}
+ body[data-mobile-tab="coach"] #userAnalysis .analysis-section .number{width:17px;height:17px;font-size:9px;margin-right:3px}
+ body[data-mobile-tab="coach"] #userAnalysis .analysis-section p{font-size:9px;line-height:1.22;overflow-wrap:anywhere}
+ body[data-mobile-tab="coach"] #computerPlan .options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:5px 0}
+ body[data-mobile-tab="coach"] #computerPlan .candidate{display:grid;grid-template-columns:18px minmax(0,1fr);gap:4px;padding:5px;min-width:0}
+ body[data-mobile-tab="coach"] #computerPlan .candidate .rank{width:17px;height:17px;font-size:8px}
+ body[data-mobile-tab="coach"] #computerPlan .candidate b{font-size:9px;line-height:1.15}
+ body[data-mobile-tab="coach"] #computerPlan .candidate small{font-size:8px;line-height:1.2;overflow-wrap:anywhere}
+ body[data-mobile-tab="coach"] #computerPlan .candidate em{display:none}
+ body[data-mobile-tab="coach"] #computerPlan>button{font-size:9px;min-height:26px;padding:4px 7px}
+ body[data-mobile-tab="coach"] #questionArea{display:none}
+ /* Scan and game tabs each get the full work area */
+ body[data-mobile-tab="scan"] .right,
+ body[data-mobile-tab="game"] .right{display:block!important;height:100%;overflow:hidden}
+ body[data-mobile-tab="scan"] #positionScanPanel,
+ body[data-mobile-tab="game"] #gameModePanel{display:block!important;height:100%;padding:9px 11px;overflow:auto!important}
+ body[data-mobile-tab="scan"] #userMovePanel,
+ body[data-mobile-tab="scan"] #computerThinkingPanel,
+ body[data-mobile-tab="scan"] #gameModePanel,
+ body[data-mobile-tab="game"] #userMovePanel,
+ body[data-mobile-tab="game"] #computerThinkingPanel,
+ body[data-mobile-tab="game"] #positionScanPanel,
+ body[data-mobile-tab="scan"] #postGameAnalysis,
+ body[data-mobile-tab="game"] #postGameAnalysis{display:none!important}
+ body[data-mobile-tab="scan"] .scan-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ body[data-mobile-tab="scan"] .scan-side{padding:7px}
+ body[data-mobile-tab="scan"] .scan-side h3{font-size:11px}
+ body[data-mobile-tab="scan"] .scan-group{margin:4px 0}
+ body[data-mobile-tab="scan"] .scan-group b{font-size:8px}
+ body[data-mobile-tab="scan"] .scan-group p{font-size:9px;line-height:1.2}
+ body[data-mobile-tab="game"] .rating-big{padding:8px}
+ /* Library tab: both panels share the height without becoming scroll containers */
+ body[data-mobile-tab="library"] .viewport-bottom{display:grid!important;height:100%;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);grid-template-rows:minmax(0,1fr);gap:7px;overflow:hidden}
+ body[data-mobile-tab="library"] main.workspace{display:none}
+ body[data-mobile-tab="library"] .history-panel,
+ body[data-mobile-tab="library"] .archive-panel{display:block!important;min-width:0;min-height:0;padding:8px;overflow:auto!important}
+ body[data-mobile-tab="library"] .history-panel .movehistory{max-height:50px!important;overflow:auto!important}
+ body[data-mobile-tab="library"] .move{font-size:9px;padding:3px 4px}
+ body[data-mobile-tab="library"] .section-title{font-size:10px}
+ body[data-mobile-tab="library"] .section-title span{font-size:7px}
+ body[data-mobile-tab="library"] .archive-row{gap:4px;flex-wrap:wrap}
+ body[data-mobile-tab="library"] .archive-row select{font-size:9px;min-height:27px}
+ body[data-mobile-tab="library"] .archive-row .btn{font-size:9px;padding:4px 5px;min-height:26px}
+ body[data-mobile-tab="library"] .archive-panel .muted{font-size:8px;line-height:1.2}
+ body[data-mobile-tab="library"] .replay-controls{gap:3px;margin-top:4px}
+ body[data-mobile-tab="library"] .replay-controls .btn{font-size:9px;min-height:25px;padding:3px 5px}
+}
+
+</style>
+</head>
+<body data-mode="tutor" data-mobile-tab="board">
+<div class="app-shell">
+<header class="app-header">
+ <div class="brand"><div class="mark"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#piece-king"/></svg></div><div><div class="eyebrow">PERSONAL CHESS ACADEMY</div><h1>Nightshift Chess</h1></div></div>
+ <nav class="top-nav" aria-label="Main navigation"><a href="#study" class="active" data-nav="tutor">Study</a><a href="#play" data-nav="game">Play</a><a href="#library" data-nav="library">Game library</a></nav>
+ <div class="header-right"><span class="engine-pill offline" id="enginePill">ENGINE LOADING</span><span class="avatar">PB</span><div class="profile">Personal workspace<small>Chess study desk</small></div></div>
+</header>
+<nav class="modebar" aria-label="Select chess mode">
+ <button id="tutorModeBtn" class="modebtn active" type="button"><b>Practice / Tutor</b><small>Pause, explain and explore variations</small></button>
+ <button id="gameModeBtn" class="modebtn" type="button"><b>Game mode</b><small>Play a full match and track local rating</small></button>
+ <div class="mode-note" id="modeNote">Learning mode · explanations appear during the game</div>
+</nav>
+<div class="viewport">
+<main class="workspace" id="study">
+ <section class="board-column"><section class="card board-card">
+  <div class="boardtop"><span id="turnLabel">White to move</span><span class="engine-badge"><i id="engineDot" class="engine-dot"></i><span id="engineState">Loading Stockfish…</span></span></div>
+  <div class="boardwrap"><div id="board" class="board" aria-label="Interactive chessboard"></div><svg id="arrows" class="arrowlayer" viewBox="0 0 800 800" preserveAspectRatio="none"><defs><marker id="arrowhead" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#d5f06a"/></marker></defs></svg></div>
+  <div class="controls">
+   <div class="control-row"><button class="btn primary" id="newGame">New game</button><button class="btn" id="undo">Undo</button><button class="btn" id="hint">Hint</button><button class="btn" id="flip">Flip board</button><select id="color" aria-label="Play colour"><option value="w">Play White</option><option value="b">Play Black</option></select><select id="pace" aria-label="Computer strength"><option value="adaptive">Adaptive</option><option value="calm">Calm</option><option value="challenging">Challenging</option></select></div>
+   <div class="control-row"><select id="moveMode" aria-label="Move input"><option value="both">Click or drag</option><option value="drag">Drag and drop</option><option value="click">Click to move</option></select><select id="opponentRating" aria-label="Opponent training rating"></select><button class="btn danger" id="resignMe" type="button">I resign</button><button class="btn" id="offerComputerResign" type="button">Offer computer resignation</button></div>
+  </div>
+  <div class="status" id="status">Your move. Look for checks, captures, threats and loose pieces.</div>
+ </section></section>
+ <aside class="right">
+  <section class="card panel tutorOnly" id="userMovePanel"><h3 class="section-title">Your move analysis <span id="userLabel">WAITING FOR YOUR MOVE</span></h3><div id="userAnalysis"><span class="tag">Move-by-move coaching</span><h2>Understand the consequences of every move</h2><p>Your move review will cover its immediate continuation, the strategic direction it supports, and any mistake or improvement to consider.</p></div></section>
+  <section class="card panel tutorOnly" id="computerThinkingPanel"><h3 class="section-title">Computer's thinking <span id="computerLabel">LIVE CANDIDATES</span></h3><div id="computerPlan"><span class="tag gold">Opponent strategy</span><p>The computer's three candidate moves will be generated from the current position, not reused from a fixed list.</p></div><div id="questionArea"></div></section>
+  <section class="card panel" id="positionScanPanel"><h3 class="section-title">Position scan <span>ATTACKS & DEFENCES · BOTH SIDES</span></h3><p class="muted">Both sides are scanned independently. “Under pressure” means geometric attackers outnumber geometric defenders; it is a warning to calculate, not an automatic win of material.</p><div id="positionScan" class="scan-columns"></div></section>
+  <section class="card panel gameOnly" id="gameModePanel"><h3 class="section-title">Game mode <span>COMPETITIVE PLAY</span></h3><div class="rating-big"><div><span class="muted">Local estimated rating</span><strong id="localRatingValue">1000</strong></div><div class="rating-delta" id="lastRatingDelta">No rated-style games yet</div></div><p class="muted">This is an internal training estimate based on results against the selected computer setting. It is not an official FIDE rating and cannot be submitted to FIDE.</p><div class="analysis-section"><h3>Match settings</h3><p id="gameModeSummary">Play a complete game without tutor pauses. Your result updates your local rating estimate.</p></div><div class="analysis-section"><h3>Resignation</h3><p>You can resign at any time. The computer may concede only when its evaluation indicates a clearly lost position.</p></div></section>
+  <section class="card panel" id="postGameAnalysis" style="display:none"><h3 class="section-title">Complete game analysis <span id="postGameStatus">READY AFTER GAME</span></h3><div id="postGameContent"><p class="muted">Your full move-by-move report will appear after the game ends.</p></div></section>
+ </aside>
+</main>
+<section class="viewport-bottom" id="library">
+ <section class="history-panel" id="historyPanel"><h3 class="section-title">Move history <span>PGN · EXPORT READY</span></h3><div id="moves" class="movehistory"></div><div class="move-actions"><button class="btn small" id="copyMoves">Copy PGN</button><button class="btn small" id="downloadMoves">Export .pgn</button><button class="btn small" id="copyText">Copy move list</button></div></section>
+ <section class="archive-panel" id="archivePanel"><h3 class="section-title">Game library <span>AUTO-SAVED REPLAYS & ITERATIONS</span></h3><div class="archive-row"><select id="savedGameSelect" aria-label="Saved games"><option value="">No saved games yet</option></select><button class="btn small" id="openSavedGame">Open replay</button><button class="btn danger small" id="deleteSavedGame" disabled>Delete game</button></div><p class="muted">Games are saved on this browser/device. Export important games as PGN to keep a separate backup.</p><div class="replay-controls"><button class="btn small" id="replayStart" title="First position">|◀</button><button class="btn small" id="replayBack" title="Previous move">◀</button><button class="btn small" id="replayForward" title="Next move">▶</button><button class="btn small" id="replayEnd" title="Final position">▶|</button><button class="btn primary small" id="continueFromHere" disabled>Continue from here</button><span id="replayPosition" class="muted">Not replaying</span></div><input id="replaySlider" type="range" min="0" max="0" value="0" class="replay-slider" disabled aria-label="Replay position"><p id="branchHint" class="muted">Choose a saved game to review or branch.</p></section>
+</section>
+</div>
+<nav class="mobile-tabs" aria-label="Chess workspace sections">
+ <button type="button" class="active" data-mobile-tab="board"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg><span>Board</span></button>
+ <button type="button" data-mobile-tab="coach"><svg viewBox="0 0 24 24"><path d="M5 5h14v11H9l-4 3zM8 9h8M8 12h5"/></svg><span>Coach</span></button>
+ <button type="button" data-mobile-tab="scan"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5M10.5 7v7M7 10.5h7"/></svg><span>Scan</span></button>
+ <button type="button" data-mobile-tab="game"><svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM8 7V4h8v3M8 12h8M8 16h5"/></svg><span>Game</span></button>
+ <button type="button" data-mobile-tab="library"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM7 3v4M17 3v4M7 11h10M7 15h6"/></svg><span>Library</span></button>
+</nav>
+<footer>Chess rules use chess.js. Stockfish's lite single-threaded browser build is used for engine analysis when available; otherwise a legal-move fallback keeps the game playable.</footer>
+<svg id="piece-definitions" width="0" height="0" style="position:absolute;visibility:hidden" aria-hidden="true">
+<symbol id="piece-pawn" viewBox="0 0 100 100"><circle cx="50" cy="19" r="13" fill="currentColor"/><path d="M38 35Q39 29 50 29Q61 29 62 35L67 60Q69 65 75 68V75H25V68Q31 65 33 60Z" fill="currentColor"/><path d="M28 79H72Q78 79 78 85V89H22V85Q22 79 28 79Z" fill="currentColor"/><path d="M40 46Q50 51 60 46" fill="none" stroke="var(--piece-detail)" stroke-width="2" opacity=".8"/></symbol>
+<symbol id="piece-rook" viewBox="0 0 100 100"><path d="M25 12H38V24H46V12H56V24H64V12H76V36H68V65L78 73V80H22V73L32 65V36H25Z" fill="currentColor"/><path d="M33 40H67M32 66H68" stroke="var(--piece-detail)" stroke-width="2.5" opacity=".75"/></symbol>
+<symbol id="piece-knight" viewBox="0 0 100 100"><path d="M23 83H78V89H19V83Z" fill="currentColor"/><path d="M29 77Q34 63 29 52Q24 42 31 28Q39 12 58 12Q71 12 79 28L70 34Q68 45 76 55L69 66L77 77Z" fill="currentColor"/><path d="M40 26Q47 18 57 21Q48 25 48 33Q42 33 40 26Z" fill="var(--piece-detail)"/><circle cx="62" cy="31" r="2.8" fill="var(--piece-detail)"/><path d="M33 55Q48 49 67 55" fill="none" stroke="var(--piece-detail)" stroke-width="2" opacity=".75"/></symbol>
+<symbol id="piece-bishop" viewBox="0 0 100 100"><path d="M50 9Q68 25 65 39Q64 48 58 54L69 69L78 76V81H22V76L31 69L42 54Q35 46 35 38Q35 23 50 9Z" fill="currentColor"/><path d="M59 18L41 42" stroke="var(--piece-detail)" stroke-width="4" stroke-linecap="round"/><path d="M32 71H68" stroke="var(--piece-detail)" stroke-width="2" opacity=".75"/></symbol>
+<symbol id="piece-queen" viewBox="0 0 100 100"><circle cx="24" cy="21" r="7" fill="currentColor"/><circle cx="50" cy="12" r="7" fill="currentColor"/><circle cx="76" cy="21" r="7" fill="currentColor"/><path d="M19 31L34 43L50 24L66 43L81 31L72 69H28Z" fill="currentColor"/><path d="M27 74H73V81H27Z M23 85H77V90H23Z" fill="currentColor"/><path d="M31 59H69" stroke="var(--piece-detail)" stroke-width="2" opacity=".8"/></symbol>
+<symbol id="piece-king" viewBox="0 0 100 100"><path d="M46 7H54V20H67V28H54V39Q54 48 63 56L73 70V79H27V70L37 56Q46 48 46 39V28H33V20H46Z" fill="currentColor"/><path d="M25 83H75V90H25Z" fill="currentColor"/><path d="M50 12V35M39 23H61" stroke="var(--piece-detail)" stroke-width="2.5" opacity=".8"/></symbol>
+</svg>
+
+<div class="overlay" id="promotionModal" role="dialog" aria-modal="true" aria-labelledby="promotionTitle">
+ <div class="dialog"><h2 id="promotionTitle">Choose promotion</h2><p class="muted">Select the piece your pawn should become.</p><div class="promotion-options" id="promotionOptions"></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+if(typeof Chess!=='function'){
+ $('engineState').textContent='Chess rules failed to load';
+ $('status').textContent='Cannot start: chess.js did not load. Check your internet connection and reload.';
+ return;
+}
+const glyph={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+const pieceName={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
+
+const pieceType={k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'};
+function pieceSvg(code){
+ const type=pieceType[String(code||'').toLowerCase()];
+ return type?'<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#piece-'+type+'"></use></svg>':'';
+}
+
+const pieceValue={p:1,n:3.1,b:3.25,r:5,q:9,k:0};
+const files='abcdefgh',game=new Chess();
+let human='w',flipped=false,selected=null,targets=[],lastMove=null,phase='human',gameToken=0,dragFrom=null;
+let sfWorker=null,sfReady=false,sfPending=null,sfInitTimer=null;
+let pendingCandidates=[],chosenPrediction=null,lastEngineReview=null,lastMoveMeta=null,pointerDragFrom=null;
+let currentResult='*';
+
+document.addEventListener('pointerup',ev=>{
+ if(!pointerDragFrom)return;
+ const from=pointerDragFrom;pointerDragFrom=null;
+ const hit=document.elementFromPoint(ev.clientX,ev.clientY),cell=hit&&hit.closest?hit.closest('.sq'):null;
+ const to=cell&&cell.dataset.square;
+ if(to&&targets.includes(to))attemptMove(from,to);
+ else{selected=null;targets=[];renderBoard()}
+});
+function gameOver(){return game.game_over()}
+function resultText(){
+ if(game.in_checkmate())return (game.turn()==='w'?'Black':'White')+' wins by checkmate.';
+ if(game.in_stalemate())return 'Draw by stalemate.';
+ if(game.in_threefold_repetition())return 'Draw by threefold repetition.';
+ if(game.insufficient_material())return 'Draw by insufficient material.';
+ if(game.in_draw())return 'Draw.';
+ return '';
+}
+function fenTurn(f){return f.split(/\s+/)[1]||'w'}
+function uciOf(m){return m.from+m.to+(m.promotion||'')}
+function parseUci(u){const move={from:u.slice(0,2),to:u.slice(2,4)};if(u.length>4)move.promotion=u[4];return move}
+function squareXY(s){
+ let f=files.indexOf(s[0]),r=8-Number(s[1]);
+ if(flipped){f=7-f;r=7-r}
+ return {x:f*100+50,y:r*100+50};
+}
+let arrowUci=null;
+const arrowsSvg=$('arrows');
+function drawArrow(uci){
+ arrowUci=uci||null;
+ const svg=arrowsSvg;svg.innerHTML='<defs><marker id="arrowhead" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e4c47b"/></marker></defs>';
+ if(!uci||uci.length<4)return;
+ const a=squareXY(uci.slice(0,2)),b=squareXY(uci.slice(2,4));
+ const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+ line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);svg.appendChild(line);
+}
+function clearArrow(){arrowUci=null;arrowsSvg.innerHTML='<defs><marker id="arrowhead" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e4c47b"/></marker></defs>'}
+function renderBoard(){
+ const board=$('board');board.innerHTML='';
+ const ranks=flipped?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
+ const cols=flipped?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
+ ranks.forEach((rank,ri)=>cols.forEach((file,ci)=>{
+  const sq=files[file]+rank,p=game.get(sq),el=document.createElement('button');
+  el.type='button';el.className='sq '+(((ri+ci)%2===0)?'light':'dark');el.dataset.square=sq;
+  el.setAttribute('aria-label',sq+(p?' '+p.color+' '+pieceName[p.type]:' empty'));
+  if(selected===sq)el.classList.add('selected');
+  if(lastMove&&(lastMove.from===sq||lastMove.to===sq))el.classList.add('last');
+  if(targets.includes(sq))el.classList.add(p?'capture':'legal');
+  if(p&&p.type==='k'&&isKingAttacked(game.board(),p.color))el.classList.add('check');
+  el.innerHTML=(ci===0?`<span class="coord">${rank}</span>`:'')+(ri===7?`<span class="coord file">${files[file]}</span>`:'');
+  if(p){
+   const span=document.createElement('span');span.className='piece '+(p.color==='w'?'white':'black');
+   const code=p.color==='w'?p.type.toUpperCase():p.type;span.innerHTML=pieceSvg(code);
+   const canDrag=phase==='human'&&p.color===human&&$('moveMode').value!=='click';
+   span.draggable=!!canDrag;span.dataset.square=sq;
+   span.addEventListener('dragstart',ev=>{
+    if(!canDrag){ev.preventDefault();return}
+    dragFrom=sq;selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to);
+    ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',sq);
+    span.classList.add('dragging');
+    $('board').querySelectorAll('.sq').forEach(cell=>{const dest=cell.dataset.square;cell.classList.toggle('selected',dest===sq);cell.classList.toggle('legal',targets.includes(dest)&&!game.get(dest));cell.classList.toggle('capture',targets.includes(dest)&&!!game.get(dest));});
+   });
+   span.addEventListener('dragend',()=>{dragFrom=null;span.classList.remove('dragging')});
+   el.appendChild(span);
+  }
+  el.addEventListener('click',()=>onSquareClick(sq));
+  if(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches){
+   el.addEventListener('pointerdown',ev=>{
+    if(phase!=='human'||game.turn()!==human||$('moveMode').value==='click')return;
+    if(p&&p.color===human){ev.preventDefault();pointerDragFrom=sq;selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to);
+     board.querySelectorAll('.sq').forEach(cell=>{const dest=cell.dataset.square;cell.classList.toggle('selected',dest===sq);cell.classList.toggle('legal',targets.includes(dest)&&!game.get(dest));cell.classList.toggle('capture',targets.includes(dest)&&!!game.get(dest))});
+    }
+   });
+  }
+  el.addEventListener('dragover',ev=>{if(dragFrom){ev.preventDefault();ev.dataTransfer.dropEffect='move'}});
+  el.addEventListener('drop',ev=>{ev.preventDefault();const from=dragFrom||ev.dataTransfer.getData('text/plain');dragFrom=null;if(from)attemptMove(from,sq)});
+  board.appendChild(el);
+ }));
+ $('turnLabel').textContent=(game.turn()==='w'?'White':'Black')+' to move';
+ $('undo').disabled=game.history().length===0||['finished','replay','computer'].includes(phase);
+ $('status').className='status'+(phase==='finished'?' finished':'');
+ if(phase==='finished')$('status').textContent=resultText()||'Game finished.';
+ else if(phase==='review')$('status').textContent='Reviewing your move. The computer is waiting.';
+ else if(phase==='predict')$('status').textContent='Study the three live candidate moves, then reveal the computer’s move.';
+ else if(phase==='computer')$('status').textContent='Computer is calculating its move…';
+ else $('status').textContent='Your move. Look for checks, captures, threats and loose pieces.';
+ board.appendChild(arrowsSvg);drawArrow(arrowUci);
+ renderMoves();
+ drawBoardState();
+}
+function drawBoardState(){
+ if(gameOver()){
+  phase='finished';$('status').className='status finished';$('status').textContent=resultText()||'Game over.';
+  $('computerLabel').textContent='GAME FINISHED';$('questionArea').innerHTML='';
+  $('computerPlan').innerHTML=`<span class="tag gold">Final position</span><h2>${resultText()}</h2><p>No further computer move will be requested. You can review the final position or start a new game.</p>`;
+ }
+}
+function renderMoves(){
+ const el=$('moves');el.innerHTML='';const h=game.history({verbose:true});
+ for(let i=0;i<h.length;i+=2){
+  const item=document.createElement('span');item.className='move';
+  item.innerHTML=`<strong>${Math.floor(i/2)+1}.</strong>${h[i].san}${h[i+1]?' · '+h[i+1].san:''}`;
+  el.appendChild(item);
+ }
+ el.scrollTop=el.scrollHeight;
+}
+function onSquareClick(sq){
+ if(phase!=='human'||gameOver())return;
+ if($('moveMode').value==='drag')return;
+ if(selected&&targets.includes(sq)){attemptMove(selected,sq);return}
+ const p=game.get(sq);
+ if(p&&p.color===human){selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to)}
+ else{selected=null;targets=[]}
+ renderBoard();
+}
+function attemptMove(from,to){
+ if(phase!=='human'||gameOver()||game.turn()!==human)return;
+ const legal=game.moves({square:from,verbose:true}).filter(m=>m.to===to);
+ if(!legal.length){selected=null;targets=[];renderBoard();return}
+ if(legal.some(m=>m.promotion)){
+  openPromotion(from,to,legal.map(m=>m.promotion));return;
+ }
+ commitHumanMove(from,to);
+}
+function openPromotion(from,to,promotions){
+ const holder=$('promotionOptions');holder.innerHTML='';
+ const values=[...new Set(promotions)];
+ values.forEach(code=>{
+  const btn=document.createElement('button');btn.type='button';btn.className='promotion-piece '+(human==='w'?'white':'black');btn.innerHTML=pieceSvg(human==='w'?code.toUpperCase():code);
+  btn.title=({q:'Queen',r:'Rook',b:'Bishop',n:'Knight'})[code];
+  btn.onclick=()=>{$('promotionModal').classList.remove('open');commitHumanMove(from,to,code)};
+  holder.appendChild(btn);
+ });
+ $('promotionModal').classList.add('open');
+}
+function commitHumanMove(from,to,promotion='q'){
+ if(phase!=='human'||game.turn()!==human)return;
+ const beforeFen=game.fen(),move=game.move({from,to,promotion});
+ if(!move)return;
+ gameToken++;const token=gameToken;selected=null;targets=[];lastMove=move;clearArrow();saveGame();renderBoard();
+ lastMoveMeta={move,beforeFen,afterFen:game.fen(),token};
+ phase='review';renderBoard();
+ $('userLabel').textContent='YOUR MOVE REVIEW';
+ $('userAnalysis').innerHTML=`<span class="tag">Move played · ${escapeHtml(move.san)}</span><h2>Reviewing your decision</h2><p>First, consider what your move changes. Engine evaluation and the opponent’s strongest continuation will appear here when available.</p><div class="thinkingbar"><i></i></div>`;
+ scanBothSides();
+ if(gameOver()){
+  phase='finished';renderBoard();renderUserTerminal(move,beforeFen);return;
+ }
+ analyseHumanMove(move,beforeFen,game.fen(),token);
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderUserTerminal(move,beforeFen){
+ const result=resultText(),mate=game.in_checkmate(),headline=mate?'Checkmate!': 'Game ended';
+ $('userLabel').textContent='FINAL POSITION';
+ $('userAnalysis').innerHTML=`<span class="${mate?'tag':'tag gold'}">${escapeHtml(headline)}</span><h2>${escapeHtml(move.san)} · ${escapeHtml(result)}</h2>
+ <div class="analysis-section"><h3><span class="number">1</span>What this move leads up to</h3><p>${mate?'This move ends the game immediately. The opponent has no legal response.':'This move ends the game in a drawn or otherwise terminal position. No further move will be requested.'}</p></div>
+ <div class="analysis-section"><h3><span class="number">2</span>Long-term strategy</h3><p>${mate?'Your pieces and threats combined to create the decisive position. Review the move history to identify how the mating attack was built.':'Review the move history to see how the position reached its final result and which strategic decisions influenced it.'}</p></div>
+ <div class="analysis-section"><h3><span class="number">3</span>Mistake or hint to improve</h3><p>${mate?'No further move is needed. This is a completed win. The key lesson is to keep looking for forcing continuations and mating nets.':'The game is complete. Review the final position and move history for missed chances or drawing resources.'}</p></div>`;
+ $('computerPlan').innerHTML=`<span class="tag gold">Game over</span><h2>${escapeHtml(result)}</h2><p>The computer has no reply. The position is locked as a finished game.</p>`;
+ $('questionArea').innerHTML='';scanBothSides();saveGame();
+}
+async function analyseHumanMove(move,beforeFen,afterFen,token){
+ let before=null,after=null,depth=analysisDepth();
+ if(sfReady){
+  before=await analyseFen(beforeFen,1,depth);
+  if(token!==gameToken||phase!=='review'||gameOver())return;
+  after=await analyseFen(afterFen,3,depth);
+  if(token!==gameToken||phase!=='review'||gameOver())return;
+ }
+ let candidates=normaliseEngineLines(afterFen,after);
+ if(!candidates.length)candidates=heuristicCandidates(afterFen,3);
+ pendingCandidates=candidates;lastEngineReview={before,after,beforeFen,afterFen,depth};
+ renderUserMoveAnalysis(move,before,after,candidates,beforeFen,afterFen,depth);
+ renderPredictionOptions(candidates);
+ phase='predict';renderBoard();
+ $('status').textContent='Review complete. Pick the computer’s likely plan, then reveal its move.';
+}
+function analysisDepth(){
+ const pace=$('pace').value,n=game.history().length;
+ if(pace==='calm')return 9;if(pace==='challenging')return 15;
+ return n<12?11:n<30?12:13;
+}
+function scoreToPerspective(line,fen,color){
+ if(!line||line.score===null||line.score===undefined)return null;
+ const turn=fenTurn(fen),whiteScore=turn==='w'?line.score:-line.score;
+ return color==='w'?whiteScore:-whiteScore;
+}
+function cpToPawns(cp){return cp===null||cp===undefined?null:Math.max(-20,Math.min(20,cp/100))}
+function fmtEval(cp){
+ if(cp===null||cp===undefined)return 'not available';
+ if(Math.abs(cp)>9000)return cp>0?'decisive advantage': 'decisive disadvantage';
+ return (cp>0?'+':'')+(cp/100).toFixed(2);
+}
+function qualityFromLoss(loss){
+ if(loss===null)return {label:'Unrated',tag:'tag',text:'The engine evaluation was unavailable, so this is a positional review rather than an engine-verified grade.'};
+ if(loss>2.2)return {label:'Blunder risk',tag:'tag red',text:'This move appears to have given away a large amount of evaluation. Look closely for a tactical consequence.'};
+ if(loss>0.9)return {label:'Mistake',tag:'tag red',text:'The engine sees a materially stronger continuation. Review the opponent’s forcing reply.'};
+ if(loss>0.35)return {label:'Inaccuracy',tag:'tag gold',text:'The move is playable, but a more accurate option appears to preserve more of your position.'};
+ if(loss<-.25)return {label:'Strong improvement',tag:'tag',text:'The resulting position evaluates better than the reference position at this search depth.'};
+ return {label:'Sound move',tag:'tag',text:'No major evaluation loss was detected at this search depth.'};
+}
+function renderUserMoveAnalysis(move,before,after,candidates,beforeFen,afterFen,depth){
+ const beforeScore=before&&before.lines[0]?scoreToPerspective(before.lines[0],beforeFen,human):null;
+ const afterScore=after&&after.lines[0]?scoreToPerspective(after.lines[0],afterFen,human):null;
+ const loss=beforeScore===null||afterScore===null?null:cpToPawns(beforeScore)-cpToPawns(afterScore);
+ const grade=qualityFromLoss(loss),line=candidates[0]?uciLineToSan(afterFen,candidates[0].pv):'No calculated continuation is available.';
+ const strategy=longTermStrategy(beforeFen,uciOf(move));
+ const scan=scanSide(human),risk=scan.underPressure[0];
+ let hint=grade.text;
+ if(risk)hint+=' Position scan: '+risk.label+' is under pressure ('+risk.attackers+' attacker(s), '+risk.defenders+' defender(s)).';
+ else hint+=' Keep checking whether your pieces are protected and whether the opponent has a forcing check or capture.';
+ if(loss!==null)hint+=` Approximate evaluation loss: ${loss>0?'+':''}${loss.toFixed(2)} pawns at depth ${depth}.`;
+ $('userLabel').textContent=grade.label.toUpperCase()+(loss!==null?' · ENGINE REVIEW':' · POSITIONAL REVIEW');
+ $('userAnalysis').innerHTML=`
+ <span class="${grade.tag}">${escapeHtml(grade.label)} · ${escapeHtml(move.san)}</span>
+ <div class="analysis-section"><h3><span class="number">1</span>What your current move leads up to</h3><p>${escapeHtml(moveNarrative(move,beforeFen,afterFen))}</p><p><b>Strongest expected reply:</b> ${escapeHtml(line)}${line!=='No calculated continuation is available.'?'.':''}</p></div>
+ <div class="analysis-section"><h3><span class="number">2</span>What your long-term strategy looks like</h3><p>${escapeHtml(strategy)}</p></div>
+ <div class="analysis-section"><h3><span class="number">3</span>Mistake or hint to improve</h3><p>${escapeHtml(hint)}</p></div>
+ <p class="muted">${loss===null?'Engine grade unavailable; move-quality language is heuristic.':'Engine comparison is approximate and depends on search depth, hardware and position complexity.'}</p>`;
+ scanBothSides();
+}
+function moveNarrative(move,beforeFen,afterFen){
+ if(move.san.includes('#'))return 'This is checkmate. The game ends immediately; there is no legal reply.';
+ const m=move,parts=[];
+ if(m.captured)parts.push('You captured the '+pieceName[m.captured]+', changing the material balance.');
+ if(m.san.includes('+'))parts.push('You gave check, forcing the opponent to address its king.');
+ if(m.flags.includes('k')||m.flags.includes('q'))parts.push('You castled, bringing the king towards safety and activating a rook.');
+ if(m.piece==='p'&&['d4','e4','d5','e5'].includes(m.to))parts.push('Your pawn now contests a central square and can influence the space available to both sides.');
+ const line=pendingCandidates[0]?uciLineToSan(afterFen,pendingCandidates[0].pv):'';
+ if(line)parts.push('The leading reply sequence currently begins '+line+'.');
+ if(!parts.length)parts.push('The move changes the placement of your '+pieceName[m.piece]+' from '+m.from+' to '+m.to+'. Its immediate consequence is shown in the opponent’s candidate continuations.');
+ return parts.join(' ');
+}
+function longTermStrategy(fen,uci){
+ const c=new Chess(fen),m=c.move(parseUci(uci));if(!m)return 'Improve piece coordination, keep your king safe and avoid creating targets.';
+ if(m.flags.includes('k')||m.flags.includes('q'))return 'King safety is now improved and the rook is brought closer to the centre. A sensible follow-up is to connect the rooks and improve the least active minor piece.';
+ if(m.piece==='p'&&['d4','e4','d5','e5'].includes(m.to))return 'You are contesting central space. The longer-term plan is to support this pawn structure, develop pieces behind it and use the central files or diagonals that open.';
+ if((m.piece==='n'||m.piece==='b')&&m.from[1]===(m.color==='w'?'1':'8'))return 'You are developing a minor piece. Continue bringing the remaining pieces into play, coordinate them around central squares and prepare to castle.';
+ if(m.captured)return 'You have changed the material balance. The long-term question is whether the resulting structure, activity and king safety favour you. Avoid trading automatically; compare the activity of the remaining pieces.';
+ if(m.piece==='r')return 'The rook is being repositioned. Look to occupy an open or semi-open file, support a passed pawn or coordinate with the other rook.';
+ if(m.piece==='q')return 'The queen has changed its influence over the board. Avoid exposing it to tempo-gaining attacks; use it to coordinate with developed pieces rather than launching an unsupported attack.';
+ return 'This move appears to improve piece placement or prepare a follow-up. A durable plan is to improve your least active piece, keep central control and create a second weakness rather than attack a well-defended target repeatedly.';
+}
+function moveIntent(fen,uci){
+ const c=new Chess(fen),m=c.move(parseUci(uci));if(!m)return {title:'Legal candidate',detail:'A legal move in the current position.'};
+ const checks=c.in_check(),piece=pieceName[m.piece];
+ if(m.san.includes('#'))return {title:'Checkmate',detail:'Ends the game immediately.'};
+ if(checks)return {title:'Forcing check',detail:`The ${piece} checks the king. The opponent must respond to the check.`};
+ if(m.captured)return {title:'Capture / material gain',detail:`Captures the ${pieceName[m.captured]} on ${m.to}. Calculate whether the piece can be recaptured.`};
+ if(m.flags.includes('k')||m.flags.includes('q'))return {title:'King safety',detail:'Castles, shelters the king and activates a rook.'};
+ if((m.piece==='n'||m.piece==='b')&&m.from[1]===(m.color==='w'?'1':'8'))return {title:'Piece development',detail:`Develops the ${piece} onto ${m.to}, adding a piece to the game.`};
+ if(['d4','e4','d5','e5'].includes(m.to))return {title:'Central control',detail:`Occupies ${m.to} and contests central space.`};
+ const copy=new Chess(c.fen()),board=copy.board(),enemy=m.color==='w'?'b':'w',targetsFound=[];
+ for(let r=0;r<8;r++)for(let col=0;col<8;col++){const p=board[r][col];if(p&&p.color===enemy&&p.type!=='k'){
+  const sq=files[col]+(8-r),a=attackersTo(board,sq,m.color);if(a.length)targetsFound.push({sq,p,a});
+ }}
+ const targetsList=targetsFound.sort((a,b)=>(pieceValue[b.p.type]||0)-(pieceValue[a.p.type]||0));
+ if(targetsList.length)return {title:'Creates piece pressure',detail:`The move adds pressure to ${pieceName[targetsList[0].p.type]} on ${targetsList[0].sq}. Check whether the target has enough defenders.`};
+ const movedAttackers=attackersTo(c.board(),m.to,m.color==='w'?'b':'w').length,movedDefenders=attackersTo(c.board(),m.to,m.color).length;
+ if(movedAttackers>movedDefenders)return {title:'Risky destination',detail:`The moved piece may be vulnerable on ${m.to}: ${movedAttackers} attacker(s) against ${movedDefenders} defender(s).`};
+ return {title:'Improves coordination',detail:`Repositions the ${piece} to ${m.to}; inspect the new lines, supported squares and potential follow-up threats.`};
+}
+
+/* Attack-map scan: geometric control is counted, including pinned pieces.
+   This is deliberately distinct from legal moves: pinned pieces still control squares. */
+function attacksSquare(board,fr,fc,tr,tc,p){
+ const dr=tr-fr,dc=tc-fc,adr=Math.abs(dr),adc=Math.abs(dc);
+ if(adr===0&&adc===0)return false;
+ if(p.type==='p')return adc===1&&dr===(p.color==='w'?-1:1);
+ if(p.type==='n')return (adr===2&&adc===1)||(adr===1&&adc===2);
+ if(p.type==='k')return Math.max(adr,adc)===1;
+ let slider=false;
+ if(p.type==='b')slider=adr===adc;
+ else if(p.type==='r')slider=(dr===0||dc===0);
+ else if(p.type==='q')slider=(adr===adc||dr===0||dc===0);
+ if(!slider)return false;
+ const sr=Math.sign(dr),sc=Math.sign(dc);let r=fr+sr,c=fc+sc;
+ while(r!==tr||c!==tc){if(board[r][c])return false;r+=sr;c+=sc}
+ return true;
+}
+function attackersTo(board,square,color){
+ const tr=8-Number(square[1]),tc=files.indexOf(square[0]),found=[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.color===color&&attacksSquare(board,r,c,tr,tc,p))found.push({square:files[c]+(8-r),piece:p})}
+ return found;
+}
+function isKingAttacked(board,color){
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.color===color&&p.type==='k')return attackersTo(board,files[c]+(8-r),color==='w'?'b':'w').length>0}
+ return false;
+}
+function scanSide(color){
+ const board=game.board(),enemy=color==='w'?'b':'w',underPressure=[],attacked=[],defended=[];
+ let material=0,kingSquare='';
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const p=board[r][c];if(!p||p.color!==color)continue;
+  const square=files[c]+(8-r),name=(p.type==='p'?'P':p.type.toUpperCase())+square;
+  material+=pieceValue[p.type]||0;if(p.type==='k')kingSquare=square;
+  const a=attackersTo(board,square,enemy),d=attackersTo(board,square,color);
+  if(a.length){const item={label:name,square,piece:p,attackers:a.length,defenders:d.length,attackerSquares:a.map(x=>x.square),defenderSquares:d.map(x=>x.square)};attacked.push(item);if(a.length>d.length)underPressure.push(item)}
+  if(d.length)defended.push({label:name,square,defenders:d.length,defenderSquares:d.map(x=>x.square)});
+ }
+ const controls=['d4','e4','d5','e5'].map(sq=>`${sq}: ${attackersTo(board,sq,color).length}`).join(' · ');
+ return {color,material,attacked,underPressure,defended,inCheck:!!kingSquare&&isKingAttacked(board,color),kingSquare,controls};
+}
+function scanSideHtml(scan,title){
+ const attacked=scan.attacked.length?scan.attacked.map(x=>`${x.label} (${x.attackers} attacker${x.attackers>1?'s':''}, ${x.defenders} defender${x.defenders>1?'s':''})`).join('; '):'No pieces are currently under direct geometric attack.';
+ const vulnerable=scan.underPressure.length?scan.underPressure.map(x=>x.label).join(', '):'No pieces have more geometric attackers than defenders.';
+ const defended=scan.defended.length?scan.defended.map(x=>`${x.label} (${x.defenders})`).join(', '):'No piece has another friendly piece geometrically defending its square.';
+ return `<div class="scan-side"><h3>${title}<span>${scan.material.toFixed(1)} material pts</span></h3>
+ <div class="scan-group"><b>Attacked pieces</b><p>${escapeHtml(attacked)}</p></div>
+ <div class="scan-group"><b>Under-defended / hanging candidates</b><p>${escapeHtml(vulnerable)}</p></div>
+ <div class="scan-group"><b>Defended pieces</b><p>${escapeHtml(defended)}</p></div>
+ <div class="scan-group"><b>King safety</b><p>${scan.inCheck?'King on '+scan.kingSquare+' is attacked.':'King on '+(scan.kingSquare||'unknown')+' is not currently attacked.'}</p></div>
+ <div class="scan-group"><b>Central control</b><p>${escapeHtml(scan.controls)}</p></div></div>`;
+}
+function scanBothSides(){
+ const your=scanSide(human),computer=scanSide(human==='w'?'b':'w');
+ $('positionScan').innerHTML=scanSideHtml(your,'You · '+(human==='w'?'White':'Black'))+scanSideHtml(computer,'Computer · '+(human==='w'?'Black':'White'));
+ return {you:your,computer};
+}
+
+function setEngineLabel(text,ready){
+ $('engineState').textContent=text;$('engineDot').classList.toggle('ready',!!ready);
+ const pill=$('enginePill');if(pill){pill.textContent=ready?'ENGINE ONLINE':/Loading|Restarting/.test(text)?'ENGINE LOADING':'BUILT-IN ANALYSIS';pill.classList.toggle('offline',!ready)}
+}
+/* Stockfish UCI worker. Single-threaded build runs without COOP/COEP headers. */
+function initEngine(){
+ try{
+  // The npm package publishes the engine under bin/. This build ignores Module.locateFile and
+  // takes its .wasm URL from the worker's location hash, so pass it there (a blob: worker has no usable path).
+  const base='https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/';
+  const source=`importScripts('${base}stockfish-19-lite-single.js');`;
+  const blob=new Blob([source],{type:'text/javascript'}),url=URL.createObjectURL(blob);
+  sfWorker=new Worker(url+'#'+encodeURIComponent(base+'stockfish-19-lite-single.wasm'));
+  sfWorker.onmessage=ev=>{
+   const msg=String(ev.data);
+   if(msg==='uciok'){sfWorker.postMessage('setoption name MultiPV value 3');sfWorker.postMessage('isready');}
+   else if(msg==='readyok'){sfReady=true;setEngineLabel('Stockfish ready',true);}
+   else if(msg.startsWith('info')&&sfPending){
+    const mp=Number((msg.match(/\bmultipv\s+(\d+)/)||[])[1]||1);
+    const scoreCp=(msg.match(/\bscore\s+cp\s+(-?\d+)/)||[])[1];
+    const scoreMate=(msg.match(/\bscore\s+mate\s+(-?\d+)/)||[])[1];
+    const pv=(msg.match(/\bpv\s+(.+)$/)||[])[1];
+    if(pv){
+     const line=sfPending.lines[mp]||{multipv:mp};
+     if(scoreCp!==undefined)line.score=Number(scoreCp);
+     else if(scoreMate!==undefined)line.score=Number(scoreMate)>0?10000-Number(scoreMate):-10000-Number(scoreMate);
+     line.pv=pv.trim().split(/\s+/);sfPending.lines[mp]=line;
+    }
+   }else if(msg.startsWith('bestmove')&&sfPending){
+    const job=sfPending;sfPending=null;clearTimeout(job.timer);
+    const lines=Object.values(job.lines).sort((a,b)=>a.multipv-b.multipv);
+    if(!lines.length){const uci=msg.split(/\s+/)[1];if(uci&&uci!=='(none)')lines.push({multipv:1,pv:[uci],score:null})}
+    job.resolve({lines,bestmove:msg.split(/\s+/)[1]||null});
+   }
+  };
+  sfWorker.onerror=()=>{
+   sfReady=false;setEngineLabel('Built-in analysis active',false);
+   if(sfPending){const job=sfPending;sfPending=null;clearTimeout(job.timer);job.resolve(null)}
+  };
+  sfWorker.postMessage('uci');
+  sfInitTimer=setTimeout(()=>{if(!sfReady)setEngineLabel('Built-in analysis active',false)},12000);
+ }catch(e){setEngineLabel('Built-in analysis active',false)}
+}
+function restartEngine(){
+ try{if(sfWorker)sfWorker.terminate()}catch(e){}
+ sfWorker=null;sfReady=false;clearTimeout(sfInitTimer);setEngineLabel('Restarting Stockfish…',false);initEngine();
+}
+async function analyseFen(fen,multipv,depth,strengthTarget=null,timeoutMs=18000){
+ // After Undo/New game a 'stop' is sent; give that search a moment to report bestmove.
+ for(let i=0;sfPending&&i<60;i++)await new Promise(r=>setTimeout(r,50));
+ if(!sfReady||!sfWorker||sfPending)return null;
+ return new Promise(resolve=>{
+  const job={lines:{},resolve,timer:null};sfPending=job;
+  job.timer=setTimeout(()=>{
+   if(sfPending===job){sfPending=null;restartEngine();resolve(null)}
+  },timeoutMs);
+  if(strengthTarget!==null&&Number(strengthTarget)>=1320){
+   sfWorker.postMessage('setoption name UCI_LimitStrength value true');
+   sfWorker.postMessage('setoption name UCI_Elo value '+Math.max(1320,Math.min(3190,Number(strengthTarget))));
+  }else{
+   sfWorker.postMessage('setoption name UCI_LimitStrength value false');
+   sfWorker.postMessage('setoption name Skill Level value 20');
+  }
+  sfWorker.postMessage('setoption name MultiPV value '+multipv);
+  sfWorker.postMessage('position fen '+fen);
+  sfWorker.postMessage('go depth '+depth);
+ });
+}
+function uciLineToSan(fen,line){
+ if(!line||!line.length)return '';
+ const copy=new Chess(fen),out=[];
+ for(const u of line.slice(0,6)){
+  if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))break;
+  const m=copy.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});
+  if(!m)break;out.push(m.san);
+ }
+ return out.join(' ');
+}
+function normaliseEngineLines(fen,result){
+ if(!result||!result.lines)return [];
+ return result.lines.filter(x=>x.pv&&x.pv.length).map((x,i)=>{
+  const uci=x.pv[0],copy=new Chess(fen),m=copy.move(parseUci(uci));
+  if(!m)return null;
+  return {rank:i+1,uci,pv:x.pv,score:x.score===undefined?null:x.score,san:m.san,intent:moveIntent(fen,uci)};
+ }).filter(Boolean).slice(0,3);
+}
+function heuristicCandidates(fen,limit=3){
+ const source=new Chess(fen),color=source.turn(),moves=source.moves({verbose:true}),out=[];
+ for(const raw of moves){
+  const copy=new Chess(fen),m=copy.move({from:raw.from,to:raw.to,promotion:raw.promotion||'q'});
+  let score=0;
+  if(m.captured)score+=(pieceValue[m.captured]||0)*1.5;
+  if(m.san.includes('+'))score+=4;
+  if(m.san.includes('#'))score+=1000;
+  if(m.flags.includes('k')||m.flags.includes('q'))score+=1.5;
+  if((m.piece==='n'||m.piece==='b')&&(m.from[1]===(color==='w'?'1':'8')))score+=.9;
+  if(['d4','e4','d5','e5'].includes(m.to))score+=.7;
+  const board=copy.board(),moved=copy.get(m.to);
+  if(moved&&moved.type!=='k'){
+   const a=attackersTo(board,m.to,color==='w'?'b':'w').length,d=attackersTo(board,m.to,color).length;
+   if(a>d)score-=((pieceValue[moved.type]||1)*.8);
+  }
+  const ownMat=materialFromBoard(board,color),oppMat=materialFromBoard(board,color==='w'?'b':'w');
+  score+=(ownMat-oppMat)*.1;
+  out.push({rank:0,uci:uciOf(m),pv:[uciOf(m)],score:null,san:m.san,intent:moveIntent(fen,uciOf(m)),heuristicScore:score});
+ }
+ out.sort((a,b)=>(b.heuristicScore||0)-(a.heuristicScore||0));
+ return out.slice(0,limit).map((x,i)=>({...x,rank:i+1}));
+}
+function materialFromBoard(board,color){let n=0;for(const row of board)for(const p of row)if(p&&p.color===color)n+=pieceValue[p.type]||0;return n}
+function lineEvalForSide(line,fen,color){if(!line||line.score===null)return null;const white=fenTurn(fen)==='w'?line.score:-line.score;return color==='w'?white:-white}
+function candidateHtml(c,fen){
+ const line=uciLineToSan(fen,c.pv),score=c.score===null?'Fallback rank':(c.score>0?'+':'')+(c.score/100).toFixed(2);
+ return `<button class="candidate" data-rank="${c.rank}"><span class="rank">${c.rank}</span><span><b>${escapeHtml(c.san)} · ${escapeHtml(c.intent.title)}</b><small>${escapeHtml(c.intent.detail)}${line?' · Line: '+escapeHtml(line):''}</small></span><em>${escapeHtml(score)}</em></button>`;
+}
+function renderPredictionOptions(candidates){
+ $('computerLabel').textContent='CURRENT POSITION · THREE CANDIDATES';
+ const beforeFen=game.fen();
+ const optionHtml=candidates.map(c=>candidateHtml(c,beforeFen)).join('');
+ $('computerPlan').innerHTML=`<span class="tag gold">Predict the computer’s plan</span><h2>Which move would you expect here?</h2><p>These are generated from the current position and refresh after every move. Choose one to see how the engine ranks it.</p><div class="options">${optionHtml||'<p>No candidate moves available.</p>'}</div><button class="btn primary" id="playComputer" ${candidates.length?'':'disabled'}>Reveal computer’s move</button>`;
+ $('computerPlan').querySelectorAll('.candidate').forEach(btn=>btn.onclick=()=>{
+  chosenPrediction=Number(btn.dataset.rank);
+  $('computerPlan').querySelectorAll('.candidate').forEach(b=>b.classList.toggle('selected',b===btn));
+  const selectedLine=pendingCandidates.find(c=>c.rank===chosenPrediction),best=pendingCandidates[0];
+  const feedback=chosenPrediction===1?'You identified the engine’s top-ranked move.':`A legal candidate. The engine currently ranks ${best.san} ahead of ${selectedLine.san}. Compare their continuations and the squares they influence.`;
+  let div=$('predictionFeedback');if(!div){div=document.createElement('p');div.id='predictionFeedback';div.className='muted';btn.parentElement.after(div)}div.textContent=feedback;
+ });
+ $('playComputer').onclick=()=>playComputerMove();
+ phase='predict';renderBoard();
+}
+async function playComputerMove(){
+ if(phase!=='predict'||gameOver())return;
+ const token=gameToken,preFen=game.fen();phase='computer';$('computerLabel').textContent='COMPUTER TO MOVE';
+ $('computerPlan').innerHTML='<span class="tag gold">Computer calculating</span><h2>Choosing its move</h2><p>The computer is selecting its strongest available continuation.</p><div class="thinkingbar"><i></i></div>';
+ renderBoard();
+ let candidates=pendingCandidates;
+ if(!candidates.length&&sfReady){const result=await analyseFen(preFen,3,analysisDepth());if(token!==gameToken||phase!=='computer')return;candidates=normaliseEngineLines(preFen,result)}
+ if(!candidates.length)candidates=heuristicCandidates(preFen,3);
+ const best=candidates[0];
+ if(!best){phase='finished';renderBoard();return}
+ let m=game.move(parseUci(best.uci));
+ if(!m){const fallback=heuristicCandidates(preFen,legalCount())[0];if(fallback)m=game.move(parseUci(fallback.uci))}
+ if(!m){phase='finished';renderBoard();return}
+ lastMove=m;selected=null;targets=[];clearArrow();saveGame();
+ if(gameOver()){
+  phase='finished';renderBoard();renderComputerTerminal(m,preFen,candidates);return;
+ }
+ phase='human';renderBoard();
+ renderComputerMoveAnalysis(m,preFen,candidates);
+ pendingCandidates=[];chosenPrediction=null;scanBothSides();
+}
+function legalCount(){return game.moves().length}
+// The move actually played can differ from the engine's top line (sub-1320 training levels pick weaker moves),
+// so describe and draw the played move, and mention the engine's preference separately.
+function playedCandidate(move,preFen,candidates){
+ const u=uciOf(move);
+ return candidates.find(c=>c.uci===u)||candidateForUci(preFen,u)||{uci:u,pv:[u],score:null,san:move.san,intent:moveIntent(preFen,u)};
+}
+function renderComputerMoveAnalysis(move,preFen,candidates){
+ const best=candidates[0],runnerUp=candidates[1],played=playedCandidate(move,preFen,candidates),pv=uciLineToSan(preFen,played.pv)||move.san;
+ const deviated=!!best&&best.uci!==played.uci;
+ const strategy=longTermStrategy(preFen,uciOf(move)),yourScan=scanSide(human),computerScan=scanSide(human==='w'?'b':'w');
+ const yourRisk=yourScan.underPressure[0],computerRisk=computerScan.underPressure[0];
+ const pressure=computerRisk?`The computer has ${computerRisk.label} under pressure (${computerRisk.attackers} attacker(s), ${computerRisk.defenders} defender(s)). This may be a target for you.`:'The scan found no computer piece with more geometric attackers than defenders.';
+let engineVerdict;
+ if(deviated){
+  engineVerdict=`At the selected training level the computer played ${move.san}, not the engine's top choice ${best.san}.`;
+  if(best.score!==null&&played.score!==null)engineVerdict+=` That cost it about ${((best.score-played.score)/100).toFixed(2)} pawns at this search depth — look for a way to exploit it.`;
+ }else{
+  engineVerdict=best&&best.score!==null?'The engine ranked '+best.san+' as its top choice in this position, and the computer played it.':'The fallback opponent selected its highest-ranked legal candidate; an engine verdict is unavailable.';
+  if(best&&runnerUp&&best.score!==null&&runnerUp.score!==null){const gap=(best.score-runnerUp.score)/100;engineVerdict+=` The second choice ${runnerUp.san} scored ${gap.toFixed(2)} pawns lower for the computer at this search depth.`}
+ }
+ const alternatives=candidates.filter(c=>c.uci!==played.uci).map(c=>`${c.san}: ${c.intent.title}${c.score===null?'':' ('+(c.score>0?'+':'')+(c.score/100).toFixed(2)+')'}`).join(' · ');
+ $('computerLabel').textContent='LAST MOVE · LIVE POSITION';
+ $('computerPlan').innerHTML=`
+ <span class="tag gold">Computer played · ${escapeHtml(move.san)}</span>
+ <div class="analysis-section"><h3><span class="number">1</span>What the computer’s move leads up to</h3><p>The selected line is <b>${escapeHtml(pv)}</b>. ${escapeHtml(played.intent.detail)}</p></div>
+ <div class="analysis-section"><h3><span class="number">2</span>Computer’s long-term strategy</h3><p>${escapeHtml(strategy)}</p></div>
+ <div class="analysis-section"><h3><span class="number">3</span>Computer’s mistake / your hint</h3><p>${escapeHtml(engineVerdict)} ${escapeHtml(pressure)} ${computerRisk?'Check whether you can attack the exposed piece with tempo.':'No definite computer blunder is established by this scan. Look for a forcing check, safe capture or a way to create a second weakness.'}${yourRisk?' Your own '+escapeHtml(yourRisk.label)+' is also under pressure, so address that threat before launching counterplay.':''}</p></div>
+ <p class="muted"><b>Other candidate plans:</b> ${escapeHtml(alternatives||'No alternative engine lines were returned.')}</p>`;
+ $('questionArea').innerHTML='<div class="question"><b>Your turn</b><p class="muted">Before moving, identify what the computer is threatening and which of your pieces need attention.</p></div>';
+ drawArrow(played.uci);$('userLabel').textContent='READY FOR YOUR MOVE';
+}
+function renderComputerTerminal(move,preFen,candidates){
+ const pv=uciLineToSan(preFen,playedCandidate(move,preFen,candidates).pv)||move.san;
+ $('computerLabel').textContent='GAME FINISHED';
+ $('computerPlan').innerHTML=`<span class="tag gold">Final computer move</span><h2>${escapeHtml(move.san)} · ${escapeHtml(resultText())}</h2>
+ <div class="analysis-section"><h3><span class="number">1</span>What this move leads up to</h3><p>${escapeHtml(pv||move.san)}. This line ended the game.</p></div>
+ <div class="analysis-section"><h3><span class="number">2</span>Computer’s long-term strategy</h3><p>${escapeHtml(longTermStrategy(preFen,uciOf(move)))}</p></div>
+ <div class="analysis-section"><h3><span class="number">3</span>Mistake or hint</h3><p>Review the final position and the move history to understand how the mating net or decisive result was created.</p></div>`;
+ $('questionArea').innerHTML='';$('userLabel').textContent='GAME OVER';$('userAnalysis').innerHTML=`<span class="tag red">Game finished</span><h2>${escapeHtml(resultText())}</h2><p>No more moves are possible. Open this game from the Game library to replay it or branch a new variation from any move, or start a new game.</p>`;
+}
+function startComputerGame(){
+ if(gameOver()){phase='finished';renderBoard();return}
+ phase='computer';renderBoard();
+ const token=gameToken;
+ (async()=>{
+  const f=game.fen();let result=null;
+  if(sfReady)result=await analyseFen(f,3,analysisDepth());
+  if(token!==gameToken||phase!=='computer'||gameOver())return;
+  let candidates=normaliseEngineLines(f,result);if(!candidates.length)candidates=heuristicCandidates(f,3);
+  pendingCandidates=candidates;
+  const m=game.move(parseUci(candidates[0].uci));
+  if(!m){phase='finished';renderBoard();return}
+  lastMove=m;saveGame();
+  if(gameOver()){phase='finished';renderBoard();renderComputerTerminal(m,f,candidates);return}
+  phase='human';renderBoard();renderComputerMoveAnalysis(m,f,candidates);scanBothSides();
+ })();
+}
+function moveHistoryText(){return game.history().reduce((arr,san,i)=>{const n=Math.floor(i/2)+1;if(i%2===0)arr.push(n+'. '+san);else arr[arr.length-1]+=' '+san;return arr},[]).join('  ')}
+function pgnText(){
+ let result=(replayRecord&&replayRecord.result&&replayRecord.result!=='*')?replayRecord.result:(activeRecord&&activeRecord.result&&activeRecord.result!=='*'?activeRecord.result:'*');
+ if(result==='*'){if(game.in_checkmate())result=game.turn()==='w'?'0-1':'1-0';else if(game.in_draw())result='1/2-1/2';}
+ game.header('Event','Chess Tutor Training','White',human==='w'?'You':'Computer','Black',human==='b'?'You':'Computer','Result',result);
+ return game.pgn({max_width:80,newline_char:'\n'});
+}
+function copyText(text){
+ if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(text);
+ const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+ try{document.execCommand('copy')}finally{ta.remove()}
+ return Promise.resolve();
+}
+$('copyMoves').onclick=()=>copyText(pgnText()).then(()=>$('status').textContent='PGN copied to clipboard.');
+$('copyText').onclick=()=>copyText(moveHistoryText()).then(()=>$('status').textContent='Move list copied to clipboard.');
+$('downloadMoves').onclick=()=>{
+ const blob=new Blob([pgnText()],{type:'application/x-chess-pgn'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='chess-tutor-game.pgn';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ $('status').textContent='PGN export downloaded.';
+};
+function saveGame(){
+ try{localStorage.setItem('chessTutorV3',JSON.stringify({pgn:game.pgn(),human,pace:$('pace').value,moveMode:$('moveMode').value}))}catch(e){}
+}
+function resetGame(){
+ gameToken++;if(sfPending&&sfWorker)sfWorker.postMessage('stop');
+ game.reset();human=$('color').value;flipped=false;selected=null;targets=[];lastMove=null;pendingCandidates=[];chosenPrediction=null;lastEngineReview=null;phase=human==='w'?'human':'computer';clearArrow();
+ $('userLabel').textContent='WAITING FOR YOUR MOVE';$('computerLabel').textContent='LIVE CANDIDATES';
+ $('userAnalysis').innerHTML='<span class="tag">New game</span><h2>Plan before you play</h2><p>Your move will be reviewed in three parts: immediate continuation, long-term strategy and a mistake or improvement hint.</p>';
+ $('computerPlan').innerHTML='<span class="tag gold">Opponent strategy</span><p>Computer candidate moves will be calculated from the live position.</p>';$('questionArea').innerHTML='';
+ renderBoard();scanBothSides();saveGame();if(human==='b')startComputerGame();
+}
+$('newGame').onclick=resetGame;
+$('undo').onclick=()=>{
+ if(phase==='computer')return;
+ gameToken++;if(sfPending&&sfWorker)sfWorker.postMessage('stop');
+ let undone=game.undo();if(!undone)return;
+ if(game.turn()!==human&&game.history().length)game.undo();
+ lastMove=game.history({verbose:true}).slice(-1)[0]||null;selected=null;targets=[];pendingCandidates=[];chosenPrediction=null;phase=game.game_over()?'finished':game.turn()===human?'human':'computer';
+ $('userLabel').textContent='POSITION RESTORED';$('computerLabel').textContent='RECALCULATE NEXT PLAN';
+ $('userAnalysis').innerHTML='<span class="tag">Position restored</span><h2>Try another idea</h2><p>Compare candidate moves. Ask what each option attacks, defends or leaves vulnerable.</p>';
+ $('computerPlan').innerHTML='<span class="tag gold">Ready to analyse</span><p>The next analysis will be calculated from the restored position.</p>';$('questionArea').innerHTML='';
+ renderBoard();scanBothSides();saveGame();
+ if(phase==='computer'&&game.history().length===0)startComputerGame();
+};
+$('hint').onclick=()=>{
+ const scan=scanSide(human),threat=scan.underPressure[0];
+ $('userAnalysis').innerHTML=`<span class="tag">Thinking checklist</span><h2>Find forcing moves first</h2><div class="analysis-section"><h3>1. Checks</h3><p>Can you give a useful check or must you respond to one?</p></div><div class="analysis-section"><h3>2. Captures</h3><p>Look for captures, then calculate the recapture rather than assuming the piece is free.</p></div><div class="analysis-section"><h3>3. Threats</h3><p>Identify hanging pieces and direct threats. ${threat?'Your current scan flags '+escapeHtml(threat.label)+' as under pressure.':'The scan currently shows no under-defended piece.'}</p></div>`;
+};
+$('flip').onclick=()=>{flipped=!flipped;renderBoard()};
+$('color').onchange=resetGame;
+$('pace').onchange=()=>{saveGame()};
+$('moveMode').onchange=()=>{selected=null;targets=[];renderBoard();saveGame()};
+$('promotionModal').addEventListener('click',ev=>{if(ev.target===$('promotionModal'))$('promotionModal').classList.remove('open')});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape')$('promotionModal').classList.remove('open')});
+
+
+/* ========================= CHESS TUTOR V4 ========================= */
+
+candidateHtml=function(c,fen){
+ const titleMap={
+  'Forcing check':['A forcing idea','The king may be made to respond, changing who controls the next tempo.'],
+  'Capture / material gain':['A possible exchange','A piece may be won or traded, but the recapture sequence matters.'],
+  'King safety':['A safety-first plan','A quiet move may reduce danger and make the pieces work together.'],
+  'Piece development':['An improving move','A less active piece may find a better square and gain influence.'],
+  'Central control':['A space-grabbing idea','The centre may become easier to occupy or harder for the opponent to challenge.'],
+  'Creates piece pressure':['A pressure-building plan','A vulnerable defender may be overloaded or forced into a passive role.'],
+  'Improves coordination':['A positional manoeuvre','The pieces may become better connected, preparing something more concrete later.'],
+  'Risky destination':['A double-edged try','This may gain activity, but it could leave a piece exposed.'],
+  'Checkmate':['A decisive continuation','The sequence may create an immediate, unavoidable threat.']
+ };
+ const label=titleMap[c.intent.title]||['A candidate plan','This continuation changes the balance of activity, pressure or safety.'];
+ const letters=['A','B','C'];
+ // Two candidates of the same kind would otherwise show identical text; name the piece (not the move) to tell them apart.
+ const wing=f=>'abc'.includes(f)?'queenside':'de'.includes(f)?'centre':'kingside';
+ const piece=c.sameKind?' · '+(pieceName[(/^[KQRBN]/.test(c.san)?c.san[0].toLowerCase():'p')]||'piece')+', '+wing(c.uci[2]):'';
+ return `<button class="candidate" data-rank="${c.rank}"><span class="rank">${letters[(c.rank-1)%3]}</span><span><b>${label[0]}${escapeHtml(piece)}</b><small>${label[1]}</small></span><em>Explore</em></button>`;
+};
+renderPredictionOptions=function(candidates){
+ $('computerLabel').textContent='CURRENT POSITION · STRATEGIC HINTS';
+ const kinds=candidates.map(c=>c.intent&&c.intent.title);
+ candidates.forEach((c,i)=>{c.sameKind=kinds.filter(k=>k===kinds[i]).length>1});
+ const beforeFen=game.fen(),optionHtml=candidates.map(c=>candidateHtml(c,beforeFen)).join('');
+ $('computerPlan').innerHTML=`<span class="tag gold">Think about the position</span><h2>Which kind of plan feels most likely?</h2><p>These clues are based on the current position. They deliberately hide the exact move and notation. Pick the idea you would investigate first.</p><div class="options">${optionHtml||'<p>No candidate plans available.</p>'}</div><button class="btn primary" id="playComputer" ${candidates.length?'':'disabled'}>Reveal computer’s move</button>`;
+ $('computerPlan').querySelectorAll('.candidate').forEach(btn=>btn.onclick=()=>{
+  chosenPrediction=Number(btn.dataset.rank);
+  $('computerPlan').querySelectorAll('.candidate').forEach(b=>b.classList.toggle('selected',b===btn));
+  const selectedLine=pendingCandidates.find(c=>c.rank===chosenPrediction),best=pendingCandidates[0];
+  const feedback=chosenPrediction===1?'That was the engine’s preferred strategic direction at this search depth.':'A reasonable idea to examine. Compare its likely consequences with the engine’s preferred continuation.';
+  let div=$('predictionFeedback');if(!div){div=document.createElement('p');div.id='predictionFeedback';div.className='muted';btn.parentElement.after(div)}div.textContent=feedback;
+ });
+ $('playComputer').onclick=()=>playComputerMove();
+ phase='predict';renderBoard();
+};
+
+let currentMode='tutor',activeRecord=null,replayRecord=null,replayIndex=0;
+let archiveGames=[],localGameRating=1000,analysisRun=0;
+const ARCHIVE_KEY='chessTutorV4Archive',RATING_KEY='chessTutorV4Rating';
+const STANDARD_FEN='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+function loadArchive(){
+ try{const x=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]');return Array.isArray(x)?x:[]}catch(e){return []}
+}
+function persistArchive(){try{localStorage.setItem(ARCHIVE_KEY,JSON.stringify(archiveGames))}catch(e){$('status').textContent='Storage is full. Export important games as PGN.'}}
+function rootNameOf(name){return String(name||'Main Game 1').replace(/ - Iteration \d+$/,'')}
+function nextMainName(){
+ let max=0;for(const r of archiveGames){const m=rootNameOf(r.name).match(/^Main Game (\d+)$/);if(m)max=Math.max(max,Number(m[1]))}
+ return 'Main Game '+(max+1);
+}
+function nextIterationName(rootName){
+ const base=rootNameOf(rootName);let max=0;
+ for(const r of archiveGames){const m=String(r.name).match(new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' - Iteration (\\d+)$'));if(m)max=Math.max(max,Number(m[1]))}
+ return base+' - Iteration '+(max+1);
+}
+function freshRecord(name=nextMainName(),parent=null,prefix=[]){
+ return {id:'game-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),name,rootName:rootNameOf(name),
+  startFen:parent?(parent.startFen||STANDARD_FEN):STANDARD_FEN,
+  moves:prefix.map(m=>({...m})),mode:currentMode,humanColor:human,
+  opponentRating:Number($('opponentRating').value||1200),createdAt:Date.now(),updatedAt:Date.now(),
+  complete:false,result:'*',endReason:'',parentId:parent?parent.id:null,forkPly:parent?prefix.length:null,
+  ratingBefore:null,ratingAfter:null,ratingDelta:null};
+}
+function gameResultCode(){
+ if(game.in_checkmate())return game.turn()==='w'?'0-1':'1-0';
+ if(game.in_draw())return '1/2-1/2';
+ return '*';
+}
+function syncRecord(){
+ if(replayRecord)return;
+ if(!activeRecord)activeRecord=freshRecord();
+ activeRecord.mode=currentMode;activeRecord.humanColor=human;
+ activeRecord.opponentRating=Number($('opponentRating').value||1200);
+ activeRecord.moves=game.history({verbose:true}).map(m=>({uci:uciOf(m),san:m.san}));
+ activeRecord.updatedAt=Date.now();
+ const code=activeRecord.manualResult||gameResultCode();
+ if(code!=='*'){activeRecord.result=code;activeRecord.complete=true}
+ const idx=archiveGames.findIndex(x=>x.id===activeRecord.id);
+ if(idx>=0)archiveGames[idx]=activeRecord;else archiveGames.push(activeRecord);
+ persistArchive();renderArchiveList();scheduleGithubSync();
+}
+saveGame=function(){syncRecord()};
+function renderArchiveList(){
+ const sel=$('savedGameSelect');if(!sel)return;
+ const previous=sel.value;
+ const sorted=[...archiveGames].sort((a,b)=>b.createdAt-a.createdAt);
+ sel.innerHTML='<option value="">Choose a saved game…</option>'+sorted.map(r=>
+  `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} · ${r.moves.length} plies · ${r.complete?'Complete':'In progress'}</option>`).join('');
+ if(sorted.some(r=>r.id===previous))sel.value=previous;
+ const del=$('deleteSavedGame');if(del)del.disabled=!sel.value;
+}
+function updateModeUI(){
+ document.body.dataset.mode=currentMode;
+ $('tutorModeBtn').classList.toggle('active',currentMode==='tutor');
+ document.querySelectorAll('.top-nav [data-nav]').forEach(a=>a.classList.toggle('active',a.dataset.nav===currentMode));
+ $('gameModeBtn').classList.toggle('active',currentMode==='game');
+ $('modeNote').textContent=currentMode==='tutor'
+  ?'Practice mode · pause, analyse and explore alternate continuations'
+  :'Game mode · uninterrupted match play with a local performance estimate';
+ $('localRatingValue').textContent=String(localGameRating);
+ $('gameModeSummary').textContent='Opponent target: '+$('opponentRating').value+' · Results update your local training estimate, not an official rating.';
+ $('opponentRating').title='200–1300 are approximate training levels using a controlled weaker-move model. 1320–3200 use Stockfish strength limiting when supported.';
+}
+function switchMode(mode){
+ if(mode===currentMode){updateModeUI();return}
+ if(game.history().length>0&&!gameOver()&&phase!=='finished'){
+  $('status').textContent='Finish or start a new game before switching modes. Your current game has been saved.';
+  return;
+ }
+ currentMode=mode;updateModeUI();
+ if(activeRecord&&!activeRecord.moves.length){activeRecord.mode=currentMode;saveGame()}
+}
+function createNewMainGame(){
+ $('resignMe').disabled=false;$('offerComputerResign').disabled=false;
+ const reuseEmpty=!!(activeRecord&&activeRecord.moves.length===0&&!activeRecord.complete&&!replayRecord);
+ if(activeRecord&&activeRecord.moves.length&&!activeRecord.complete){activeRecord.abandoned=true;activeRecord.updatedAt=Date.now();syncRecord()}
+ replayRecord=null;replayIndex=0;analysisRun++;
+ gameToken++;if(sfPending&&sfWorker)sfWorker.postMessage('stop');
+ game.reset();human=$('color').value;flipped=human==='b';selected=null;targets=[];lastMove=null;pendingCandidates=[];chosenPrediction=null;lastEngineReview=null;
+ phase=human==='w'?'human':'computer';
+ resetReplayControls();
+ if(reuseEmpty){activeRecord.mode=currentMode;activeRecord.humanColor=human;activeRecord.moves=[];activeRecord.result='*';activeRecord.complete=false;activeRecord.manualResult=null;activeRecord.endReason='';activeRecord.opponentRating=Number($('opponentRating').value||1200)}
+ else activeRecord=freshRecord();
+ clearArrow();
+ $('userLabel').textContent='WAITING FOR YOUR MOVE';$('computerLabel').textContent='LIVE CANDIDATES';
+ $('userAnalysis').innerHTML='<span class="tag">New game</span><h2>Plan before you play</h2><p>Your game will be saved automatically. Completed games receive a full move-by-move report.</p>';
+ $('computerPlan').innerHTML='<span class="tag gold">Opponent strategy</span><p>Computer plans will be generated from the current position.</p>';$('questionArea').innerHTML='';
+ $('postGameAnalysis').style.display='none';$('postGameContent').innerHTML='<p class="muted">Your full move-by-move report will appear after the game ends.</p>';
+ updateModeUI();renderBoard();scanBothSides();saveGame();
+ if(human==='b')startComputerGameV4();
+}
+function recordMoveAfter(){
+ syncRecord();
+ if(gameOver()){finishCompletedGame(gameResultCode(),resultText());return true}
+ return false;
+}
+function commitHumanMoveV4(from,to,promotion='q'){
+ if(phase!=='human'||game.turn()!==human||replayRecord)return;
+ const beforeFen=game.fen(),move=game.move({from,to,promotion});
+ if(!move)return;
+ gameToken++;const token=gameToken;selected=null;targets=[];lastMove=move;clearArrow();
+ lastMoveMeta={move,beforeFen,afterFen:game.fen(),token};saveGame();renderBoard();scanBothSides();
+ if(gameOver()){phase='finished';renderBoard();renderUserTerminal(move,beforeFen);finishCompletedGame(gameResultCode(),resultText());return}
+ if(currentMode==='game'){
+  phase='computer';$('status').textContent='Your move is recorded. Computer is calculating…';renderBoard();
+  startComputerGameV4();return;
+ }
+ phase='review';renderBoard();
+ $('userLabel').textContent='YOUR MOVE REVIEW';
+ $('userAnalysis').innerHTML=`<span class="tag">Move played · ${escapeHtml(move.san)}</span><h2>Reviewing your decision</h2><p>First, consider what your move changes. Engine evaluation and the opponent’s strongest continuation will appear here.</p><div class="thinkingbar"><i></i></div>`;
+ analyseHumanMove(move,beforeFen,game.fen(),token);
+}
+commitHumanMove=commitHumanMoveV4;
+
+function candidateForUci(fen,uci,rank=1){
+ if(!uci||uci==='(none)')return null;
+ const c=new Chess(fen),m=c.move(parseUci(uci));if(!m)return null;
+ return {rank,uci,pv:[uci],score:null,san:m.san,intent:moveIntent(fen,uci)};
+}
+function approximateWeakChoice(fen,rating){
+ const total=new Chess(fen).moves().length;
+ const all=heuristicCandidates(fen,Math.max(1,total));
+ if(!all.length)return null;
+ const n=all.length;
+ let low=.35,high=.85;
+ if(rating<=300){low=.48;high=.98}
+ else if(rating<=500){low=.38;high=.88}
+ else if(rating<=700){low=.28;high=.72}
+ else if(rating<=900){low=.18;high=.56}
+ else if(rating<=1100){low=.08;high=.38}
+ else if(rating<=1300){low=.02;high=.24}
+ const start=Math.min(n-1,Math.floor(low*n));
+ const end=Math.max(start,Math.min(n-1,Math.ceil(high*n)-1));
+ const index=start+Math.floor(Math.random()*(end-start+1));
+ return all[index]||all[0];
+}
+async function chooseOpponentMove(fen,candidates){
+ const rating=Number($('opponentRating').value||1200);
+ if(rating>=1320&&sfReady){
+  const result=await analyseFen(fen,3,analysisDepth(),rating);
+  const fromBest=result&&result.bestmove?candidateForUci(fen,result.bestmove,1):null;
+  const lines=normaliseEngineLines(fen,result);
+  const choices=fromBest?[fromBest,...lines.filter(c=>c.uci!==fromBest.uci)]:lines;
+  return {move:choices[0]||null,candidates:choices.slice(0,3)};
+ }
+ if(rating>=1320){
+  const strongest=heuristicCandidates(fen,Math.max(1,new Chess(fen).moves().length))[0];
+  return {move:strongest||null,candidates:candidates&&candidates.length?candidates:heuristicCandidates(fen,3)};
+ }
+ const weak=approximateWeakChoice(fen,rating);
+ return {move:weak,candidates:candidates&&candidates.length?candidates:heuristicCandidates(fen,3)};
+}
+function applyComputerMoveChoice(choice,preFen,token){
+ if(token!==gameToken||replayRecord||phase!=='computer')return;
+ const candidates=choice.candidates&&choice.candidates.length?choice.candidates:heuristicCandidates(preFen,3);
+ const selectedMove=choice.move||candidates[0];
+ if(!selectedMove){phase='finished';renderBoard();return}
+ const playedFirst=[selectedMove,...candidates.filter(c=>c.uci!==selectedMove.uci)].slice(0,3);
+ const m=game.move(parseUci(selectedMove.uci));
+ if(!m){
+  const fallback=heuristicCandidates(preFen,game.moves().length)[0];
+  if(!fallback){phase='finished';renderBoard();return}
+  const fm=game.move(parseUci(fallback.uci));if(!fm){phase='finished';renderBoard();return}
+  lastMove=fm;
+ }else lastMove=m;
+ selected=null;targets=[];clearArrow();pendingCandidates=candidates;saveGame();renderBoard();scanBothSides();
+ if(gameOver()){
+  phase='finished';renderBoard();renderComputerTerminal(lastMove,preFen,candidates);
+  finishCompletedGame(gameResultCode(),resultText());return;
+ }
+ phase='human';renderBoard();
+ if(currentMode==='tutor')renderComputerMoveAnalysis(lastMove,preFen,candidates);
+ else{
+  $('status').textContent='Your turn. Game mode is uninterrupted: make your move when ready.';
+  $('userLabel').textContent='GAME MODE · YOUR TURN';
+  $('computerLabel').textContent='COMPUTER LAST MOVE';
+  $('computerPlan').innerHTML=`<span class="tag gold">Computer played · ${escapeHtml(lastMove.san)}</span><p>The match continues. Full analysis will be available when the game ends.</p>`;
+ }
+}
+async function startComputerGameV4(){
+ if(gameOver()){phase='finished';renderBoard();finishCompletedGame(gameResultCode(),resultText());return}
+ phase='computer';renderBoard();
+ $('computerPlan').innerHTML='<span class="tag gold">Computer is thinking</span><p>It is weighing candidate continuations in the current position.</p><div class="thinkingbar"><i></i></div>';
+ const token=gameToken,fen=game.fen();
+ let candidates=[];
+ if(sfReady){
+  const r=await analyseFen(fen,3,analysisDepth());
+  if(token!==gameToken||phase!=='computer'||replayRecord)return;
+  candidates=normaliseEngineLines(fen,r);
+ }
+ if(!candidates.length)candidates=heuristicCandidates(fen,3);
+ const choice=await chooseOpponentMove(fen,candidates);
+ if(token!==gameToken||phase!=='computer'||replayRecord)return;
+ applyComputerMoveChoice(choice,fen,token);
+}
+startComputerGame=startComputerGameV4;
+async function playComputerMoveV4(){
+ if(phase!=='predict'||gameOver()||replayRecord)return;
+ const token=gameToken,fen=game.fen();phase='computer';$('computerLabel').textContent='COMPUTER TO MOVE';
+ $('computerPlan').innerHTML='<span class="tag gold">Computer calculating</span><p>Comparing plausible continuations…</p><div class="thinkingbar"><i></i></div>';renderBoard();
+ let candidates=pendingCandidates;
+ if(!candidates.length&&sfReady){const r=await analyseFen(fen,3,analysisDepth());if(token!==gameToken||phase!=='computer')return;candidates=normaliseEngineLines(fen,r)}
+ const choice=await chooseOpponentMove(fen,candidates);
+ if(token!==gameToken||phase!=='computer')return;
+ applyComputerMoveChoice(choice,fen,token);
+}
+playComputerMove=playComputerMoveV4;
+
+function resignHuman(){
+ if(phase==='finished'||phase==='replay'||gameOver())return;
+ const winner=human==='w'?'0-1':'1-0';
+ finishCompletedGame(winner,'You resigned. The computer wins by resignation.');
+ $('status').textContent='You resigned. The computer wins.';
+}
+async function offerComputerResignation(){
+ if(phase==='finished'||phase==='replay'||gameOver())return;
+ if(!sfReady){$('status').textContent='The computer cannot assess resignation while Stockfish is unavailable.';return}
+ if(sfPending){$('status').textContent='The engine is busy. Try again after its current calculation.';return}
+ $('status').textContent='Asking the computer to assess its position…';
+ const comp=human==='w'?'b':'w',fen=game.fen(),r=await analyseFen(fen,1,10);
+ if(!r||!r.lines||!r.lines[0]||r.lines[0].score===null){$('status').textContent='The computer could not verify a resignation. It will continue playing.';return}
+ const evalComp=scoreToPerspective(r.lines[0],fen,comp);
+ if(evalComp!==null&&evalComp<=-800){
+  const win=human==='w'?'1-0':'0-1';
+  finishCompletedGame(win,'Computer resigns: the engine assessed its position as decisively lost.');
+ }else{$('status').textContent='The computer declines to resign. It believes the position is still playable.'}
+}
+function finishCompletedGame(result,reason){
+ if(!activeRecord||replayRecord)return;
+ if(activeRecord.analysisStarted)return;
+ gameToken++;if(sfPending&&sfWorker){try{sfWorker.postMessage('stop')}catch(e){}}
+ activeRecord.analysisStarted=true;
+ activeRecord.manualResult=result;activeRecord.result=result;activeRecord.complete=true;activeRecord.endReason=reason||result;
+ activeRecord.updatedAt=Date.now();
+ if(currentMode==='game'&&!activeRecord.ratingApplied){
+  const before=localGameRating,opp=Number($('opponentRating').value||1200);
+  const humanScore=result==='1-0'?(human==='w'?1:0):result==='0-1'?(human==='b'?1:0):.5;
+  const expected=1/(1+Math.pow(10,(opp-before)/400)),delta=Math.round(24*(humanScore-expected));
+  localGameRating=Math.max(100,before+delta);activeRecord.ratingBefore=before;activeRecord.ratingAfter=localGameRating;activeRecord.ratingDelta=localGameRating-before;activeRecord.ratingApplied=true;
+  try{localStorage.setItem(RATING_KEY,String(localGameRating))}catch(e){}
+  $('localRatingValue').textContent=String(localGameRating);$('lastRatingDelta').textContent=(delta>=0?'+':'')+delta+' after this game';
+ }
+ phase='finished';syncRecord();renderBoard();
+ $('status').className='status finished';$('status').textContent=reason||result;
+ $('postGameAnalysis').style.display='block';$('postGameStatus').textContent='PREPARING FULL REPORT';
+ $('postGameContent').innerHTML='<p class="muted">Replaying the saved moves and assessing the full game…</p><div class="thinkingbar"><i></i></div>';
+ if(currentMode==='tutor')$('questionArea').innerHTML='';
+ runCompleteGameAnalysis(activeRecord);
+}
+function evalAsWhite(result,fen){
+ const line=result&&result.lines&&result.lines[0];if(!line||line.score===null||line.score===undefined)return null;
+ const cp=line.score,turn=fenTurn(fen);return cpToPawns(turn==='w'?cp:-cp);
+}
+function labelLoss(loss){
+ if(loss===null)return {label:'Not engine-rated',cls:'warn'};
+ if(loss>2)return {label:'Blunder',cls:'bad'};
+ if(loss>.9)return {label:'Mistake',cls:'bad'};
+ if(loss>.35)return {label:'Inaccuracy',cls:'warn'};
+ if(loss<-.2)return {label:'Excellent',cls:'good'};
+ return {label:'Good',cls:'good'};
+}
+async function runCompleteGameAnalysis(record){
+ const run=++analysisRun;
+ // A resignation can happen while the engine is finishing an earlier search.
+ // Wait briefly for UCI "bestmove" to release the worker before the report starts.
+ for(let wait=0;sfPending&&wait<40;wait++)await new Promise(resolve=>setTimeout(resolve,100));
+ if(run!==analysisRun)return;
+ if(sfPending){sfPending=null;restartEngine()}
+ const root=record.startFen||STANDARD_FEN,copy=new Chess(root),fens=[copy.fen()],moves=[];
+ for(const saved of record.moves||[]){
+  const m=copy.move(parseUci(saved.uci));if(!m)break;
+  moves.push({uci:saved.uci,san:m.san,color:m.color,piece:m.piece,captured:m.captured||null,flags:m.flags,fenBefore:fens[fens.length-1],fenAfter:copy.fen()});
+  fens.push(copy.fen());
+ }
+ const evals=new Array(fens.length).fill(null);
+ if(sfReady){
+  for(let i=0;i<fens.length;i++){
+   if(run!==analysisRun)return;
+   $('postGameStatus').textContent=`ANALYSING POSITION ${i+1} / ${fens.length}`;
+   // Terminal positions have no engine line: score them directly (pawns, White's view).
+   const t=new Chess(fens[i]);
+   if(t.in_checkmate()){evals[i]=t.turn()==='w'?-20:20;continue}
+   if(t.in_draw()){evals[i]=0;continue}
+   const result=await analyseFen(fens[i],1,7,null,6500);
+   if(run!==analysisRun)return;
+   evals[i]=evalAsWhite(result,fens[i]);
+  }
+ }
+ const rows=moves.map((m,i)=>{
+  const before=evals[i],after=evals[i+1],loss=before===null||after===null?null:(m.color==='w'?before-after:after-before);
+  const grade=labelLoss(loss);
+  let note=moveIntent(m.fenBefore,m.uci).detail;
+  if(loss!==null&&loss>.9)note+=' Review the opponent’s strongest response; this move significantly changed the evaluation.';
+  return {...m,loss,grade,note};
+ });
+ const mistakes=rows.filter(r=>r.loss!==null&&r.loss>.9).sort((a,b)=>b.loss-a.loss).slice(0,5);
+ const summary=`${moves.length} half-moves · ${mistakes.length} significant mistake(s) detected`;
+ let html=`<div class="rating-big"><div><span class="muted">Game result</span><strong style="font-size:19px">${escapeHtml(record.endReason||record.result||'Completed')}</strong></div><div class="rating-delta">${escapeHtml(summary)}</div></div>`;
+ if(record.mode==='game'&&record.ratingDelta!==null&&record.ratingDelta!==undefined)html+=`<p class="muted">Local rating: ${record.ratingBefore} → <b>${record.ratingAfter}</b> (${record.ratingDelta>=0?'+':''}${record.ratingDelta}) against nominal ${record.opponentRating} strength.</p>`;
+ if(!sfReady)html+='<p class="muted">Stockfish was unavailable, so every move is listed with a rule-based strategic note. Centipawn loss and engine accuracy were not calculated.</p>';
+ else html+='<p class="muted">Engine review uses a lightweight depth-7 evaluation of every position. Centipawn loss is approximate and may differ from deeper desktop analysis.</p>';
+ if(mistakes.length)html+=`<div class="analysis-section"><h3>Critical moments to revisit</h3><p>${mistakes.map(m=>`${escapeHtml(m.san)} (${m.color==='w'?'White':'Black'}) · ${m.loss.toFixed(2)} pawn loss`).join('<br>')}</p></div>`;
+ else html+='<div class="analysis-section"><h3>Critical moments</h3><p>No large evaluation swings were identified at the analysis depth used, or the engine was unavailable.</p></div>';
+ html+='<h3 style="margin:14px 0 4px">Complete move-by-move report</h3><div style="overflow:auto"><table class="analysis-table"><thead><tr><th>#</th><th>Side</th><th>Move</th><th>Assessment</th><th>Eval loss</th><th>Strategic note</th></tr></thead><tbody>';
+ rows.forEach((r,i)=>{html+=`<tr><td>${i+1}</td><td>${r.color==='w'?'White':'Black'}</td><td><b>${escapeHtml(r.san)}</b></td><td class="${r.grade.cls}">${r.grade.label}</td><td>${r.loss===null?'—':r.loss.toFixed(2)}</td><td>${escapeHtml(r.note)}</td></tr>`});
+ html+='</tbody></table></div>';
+ $('postGameContent').innerHTML=html;$('postGameStatus').textContent='REPORT COMPLETE';record.analysisSummary=summary;syncRecord();
+}
+function replayRender(){
+ if(!replayRecord)return;
+ game.load(replayRecord.startFen||STANDARD_FEN);
+ const moves=replayRecord.moves||[];
+ for(let i=0;i<Math.min(replayIndex,moves.length);i++){
+  const m=game.move(parseUci(moves[i].uci));if(!m)break;
+ }
+ lastMove=game.history({verbose:true}).slice(-1)[0]||null;selected=null;targets=[];
+ phase='replay';renderBoard();phase='replay';
+ $('status').className='status';$('status').textContent=`Replay · ${replayRecord.name} · position ${replayIndex} of ${moves.length}`;
+ $('undo').disabled=true;$('resignMe').disabled=true;$('offerComputerResign').disabled=true;
+ $('replayPosition').textContent=`${replayIndex} / ${moves.length} plies`;
+ $('replaySlider').max=String(moves.length);$('replaySlider').value=String(replayIndex);$('replaySlider').disabled=false;
+ $('replayBack').disabled=replayIndex===0;$('replayStart').disabled=replayIndex===0;
+ $('replayForward').disabled=replayIndex===moves.length;$('replayEnd').disabled=replayIndex===moves.length;
+ $('continueFromHere').disabled=gameOver();
+ $('branchHint').textContent=gameOver()?'This position is terminal. Go back one or more moves to create a variation.':'Create a new iteration from this exact position.';
+ scanBothSides();
+}
+function openReplay(id){
+ const rec=archiveGames.find(r=>r.id===id);if(!rec)return;
+ replayRecord=rec;replayIndex=0;currentMode=rec.mode||'tutor';human=rec.humanColor||human;flipped=human==='b';clearArrow();
+ $('color').value=human;$('opponentRating').value=String(rec.opponentRating||1200);
+ updateModeUI();
+ $('postGameAnalysis').style.display=rec.complete?'block':'none';
+ replayRender();
+}
+function stepReplay(to){if(!replayRecord)return;replayIndex=Math.max(0,Math.min(replayRecord.moves.length,to));replayRender()}
+function continueFromReplay(){
+ if(!replayRecord||gameOver())return;
+ $('resignMe').disabled=false;$('offerComputerResign').disabled=false;
+ const parent=replayRecord,index=replayIndex,prefix=(parent.moves||[]).slice(0,index);
+ const rootName=parent.rootName||rootNameOf(parent.name),name=nextIterationName(rootName),oldMode=parent.mode||'tutor';
+ currentMode=oldMode;human=parent.humanColor||human;flipped=human==='b';$('color').value=human;resetReplayControls();$('opponentRating').value=String(parent.opponentRating||1200);replayRecord=null;replayIndex=0;
+ game.load(parent.startFen||STANDARD_FEN);
+ for(const item of prefix){if(!game.move(parseUci(item.uci))){$('status').textContent='Could not reconstruct that position. The source game may be damaged.';return}}
+ activeRecord=freshRecord(name,parent,prefix);activeRecord.rootName=rootName;activeRecord.mode=oldMode;
+ gameToken++;analysisRun++;pendingCandidates=[];chosenPrediction=null;selected=null;targets=[];lastMove=game.history({verbose:true}).slice(-1)[0]||null;
+ phase=gameOver()?'finished':game.turn()===human?'human':'computer';
+ updateModeUI();$('postGameAnalysis').style.display='none';
+ $('userAnalysis').innerHTML=`<span class="tag">New variation</span><h2>${escapeHtml(name)}</h2><p>This iteration starts from move ${index}. The original game remains unchanged.</p>`;
+ $('computerPlan').innerHTML='<span class="tag gold">Alternate continuation</span><p>Try a different idea from this position and compare the result with the main game.</p>';
+ $('questionArea').innerHTML='';renderBoard();scanBothSides();saveGame();
+ if(phase==='computer')startComputerGameV4();
+}
+function resetReplayControls(){
+ $('replayPosition').textContent='Not replaying';$('replaySlider').max='0';$('replaySlider').value='0';$('replaySlider').disabled=true;
+ ['replayStart','replayBack','replayForward','replayEnd','continueFromHere'].forEach(id=>$(id).disabled=true);
+ $('branchHint').textContent='Choose a saved game to review or branch.';
+}
+function startGameMode(){$('opponentRating').title='Nominal opponent target. The sub-1320 levels use an approximate mistake model.'}
+function updateLocalRating(){
+ try{localGameRating=Math.max(100,Number(localStorage.getItem(RATING_KEY)||1000)||1000)}catch(e){localGameRating=1000}
+ $('localRatingValue').textContent=String(localGameRating);
+}
+
+function scheduleGithubSync(){} // Cloud token sync removed. Game saves remain local.
+
+function deleteSelectedSavedGame(){
+ const id=$('savedGameSelect').value;
+ if(!id){$('status').textContent='Select a saved game first.';return}
+ const rec=archiveGames.find(x=>x.id===id);if(!rec)return;
+ const ok=confirm(`Permanently delete "${rec.name}" and its saved replay? This cannot be undone.`);
+ if(!ok)return;
+ archiveGames=archiveGames.filter(x=>x.id!==id);
+ if(replayRecord&&replayRecord.id===id){
+  replayRecord=null;replayIndex=0;
+  game.reset();phase='human';lastMove=null;selected=null;targets=[];
+  $('replayPosition').textContent='Not replaying';$('replaySlider').value=0;$('replaySlider').max=0;$('replaySlider').disabled=true;
+  $('continueFromHere').disabled=true;$('resignMe').disabled=false;$('offerComputerResign').disabled=false;
+  $('postGameAnalysis').style.display='none';
+  renderBoard();scanBothSides();
+ }
+ if(activeRecord&&activeRecord.id===id){
+  activeRecord=null;
+ }
+ persistArchive();renderArchiveList();
+ $('savedGameSelect').value='';
+ $('deleteSavedGame').disabled=true;
+ $('branchHint').textContent='Saved game deleted.';
+ $('status').textContent=`Deleted "${rec.name}".`;
+}
+
+function initV4(){
+ archiveGames=loadArchive();updateLocalRating();
+ const rating=$('opponentRating');rating.innerHTML='';
+ for(let n=200;n<=3200;n+=100){const o=document.createElement('option');o.value=String(n);o.textContent=n+' Elo · '+(n<1320?'approximate practice level':'Stockfish strength target');if(n===1200)o.selected=true;rating.appendChild(o)}
+ document.querySelectorAll('.top-nav [data-nav]').forEach(a=>a.onclick=ev=>{
+  ev.preventDefault();const t=a.dataset.nav;
+  if(t==='library'){$('savedGameSelect').focus();$('archivePanel').scrollIntoView({block:'nearest'});return}
+  switchMode(t);
+ });
+ $('tutorModeBtn').onclick=()=>switchMode('tutor');
+ $('gameModeBtn').onclick=()=>switchMode('game');
+ $('newGame').onclick=createNewMainGame;
+ $('resignMe').onclick=resignHuman;
+ $('offerComputerResign').onclick=offerComputerResignation;
+ $('savedGameSelect').onchange=()=>{};
+ $('openSavedGame').onclick=()=>{if($('savedGameSelect').value)openReplay($('savedGameSelect').value)};
+ $('deleteSavedGame').onclick=deleteSelectedSavedGame;
+ $('savedGameSelect').onchange=()=>{$('deleteSavedGame').disabled=!$('savedGameSelect').value;};
+ $('replayStart').onclick=()=>stepReplay(0);
+ $('replayBack').onclick=()=>stepReplay(replayIndex-1);
+ $('replayForward').onclick=()=>stepReplay(replayIndex+1);
+ $('replayEnd').onclick=()=>{if(replayRecord)stepReplay(replayRecord.moves.length)};
+ $('replaySlider').oninput=()=>stepReplay(Number($('replaySlider').value));
+ $('continueFromHere').onclick=continueFromReplay;
+ $('opponentRating').onchange=()=>{if(activeRecord&&!activeRecord.moves.length){activeRecord.opponentRating=Number($('opponentRating').value);saveGame()}updateModeUI()};
+ $('undo').onclick=()=>{
+  if(replayRecord){$('status').textContent='You are viewing a saved game. Use the replay controls or Continue from here.';return}
+  if(phase==='computer'||phase==='finished')return;
+  gameToken++;if(sfPending&&sfWorker)sfWorker.postMessage('stop');
+  if(!game.undo())return;
+  if(game.turn()!==human&&game.history().length)game.undo();
+  lastMove=game.history({verbose:true}).slice(-1)[0]||null;selected=null;targets=[];pendingCandidates=[];chosenPrediction=null;phase=game.game_over()?'finished':game.turn()===human?'human':'computer';
+  $('userAnalysis').innerHTML='<span class="tag">Position restored</span><h2>Try another idea</h2><p>Compare what your candidate moves attack, defend or leave vulnerable.</p>';
+  $('computerPlan').innerHTML='<span class="tag gold">Reconsider the position</span><p>Candidate plans will update from the current board.</p>';$('questionArea').innerHTML='';
+  renderBoard();scanBothSides();saveGame();if(phase==='computer')startComputerGameV4();
+ };
+ $('hint').onclick=()=>{
+  if(currentMode==='game'){$('status').textContent='Game mode does not provide move hints. Complete the game for a full report.';return}
+  const threat=scanSide(human).underPressure[0];
+  $('userAnalysis').innerHTML=`<span class="tag">Thinking checklist</span><h2>Find forcing moves first</h2><div class="analysis-section"><h3>1. Checks</h3><p>Can you give a useful check or must you respond to one?</p></div><div class="analysis-section"><h3>2. Captures</h3><p>Calculate the recapture before assuming a piece is free.</p></div><div class="analysis-section"><h3>3. Threats</h3><p>${threat?'The scan flags '+escapeHtml(threat.label)+' as under pressure.':'Scan for attacked and undefended pieces.'}</p></div>`;
+ };
+ $('flip').onclick=()=>{flipped=!flipped;renderBoard()};
+ $('color').onchange=()=>{createNewMainGame()};
+ $('pace').onchange=()=>saveGame();
+ $('moveMode').onchange=()=>{selected=null;targets=[];renderBoard();saveGame()};
+ $('copyMoves').onclick=()=>copyText(pgnText()).then(()=>$('status').textContent='PGN copied to clipboard.');
+ $('copyText').onclick=()=>copyText(moveHistoryText()).then(()=>$('status').textContent='Move list copied to clipboard.');
+ $('downloadMoves').onclick=()=>{
+  const blob=new Blob([pgnText()],{type:'application/x-chess-pgn'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=(activeRecord?activeRecord.name:'chess-game').replace(/[^a-z0-9-]+/gi,'_')+'.pgn';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ $('promotionModal').addEventListener('click',ev=>{if(ev.target===$('promotionModal'))$('promotionModal').classList.remove('open')});
+ document.addEventListener('keydown',ev=>{if(ev.key==='Escape')$('promotionModal').classList.remove('open')});
+ human=$('color').value;flipped=human==='b';resetReplayControls();
+ updateModeUI();renderArchiveList();
+ activeRecord=freshRecord();renderBoard();scanBothSides();
+ if(human==='b')startComputerGameV4();
+}
+
+initEngine();initV4();
+
+/* Expose a tiny diagnostic hook for local testing without altering gameplay. */
+window.__chessTutorV3={game,scanSide,attackersTo,get phase(){return phase},get engineReady(){return sfReady}};
+})();
+</script>
+<script>
+(function(){
+ const tabs=[...document.querySelectorAll('.mobile-tabs [data-mobile-tab]')];
+ tabs.forEach(button=>button.addEventListener('click',()=>{
+  document.body.dataset.mobileTab=button.dataset.mobileTab;
+  tabs.forEach(tab=>tab.classList.toggle('active',tab===button));
+  const viewport=document.querySelector('.viewport');if(viewport)viewport.scrollTop=0;
+ }));
+ window.addEventListener('resize',()=>{if(!window.matchMedia('(max-width:900px), (min-width:901px) and (max-height:620px) and (orientation:landscape)').matches){document.body.dataset.mobileTab='board';tabs.forEach(tab=>tab.classList.toggle('active',tab.dataset.mobileTab==='board'))}});
+})();
+</script></body>
+</html>
