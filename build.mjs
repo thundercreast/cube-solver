@@ -1,0 +1,10 @@
+import * as esbuild from 'esbuild';
+import fs from 'fs';
+await esbuild.build({ entryPoints: ['src/worker/kociemba-worker.js'], bundle: true, minify: true, format: 'iife', outfile: 'build/worker.txt', logLevel: 'warning' });
+const r = await esbuild.build({ entryPoints: ['src/ui/app.js'], bundle: true, minify: true, format: 'iife', write: false, loader: { '.txt': 'text' }, target: 'es2020', logLevel: 'warning', legalComments: 'none' });
+let js = r.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
+const lic = '/* Cube Mentor. Bundles three.js (MIT, © three.js authors) and cubejs (MIT, © Petri Lehtinen). */\n';
+const html = fs.readFileSync('src/index.html', 'utf8').replace('/*BUNDLE*/', () => lic + js);
+fs.mkdirSync('dist', { recursive: true });
+fs.writeFileSync('dist/index.html', html);
+console.log('dist/index.html', (html.length / 1024).toFixed(0), 'KB');
