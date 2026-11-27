@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cube Mentor &amp; Nightshift Chess</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+         background: #0c0f14; color: #e8ecf2; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: min(720px, 100%); }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  p.lead { margin: 0 0 24px; color: #9aa6b8; }
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  a.card { display: block; padding: 20px; border-radius: 14px; border: 1px solid #263041;
+           background: #141a23; color: inherit; text-decoration: none; }
+  a.card:hover, a.card:focus-visible { border-color: #5b8cff; outline: none; }
+  a.card h2 { margin: 0 0 6px; font-size: 1.15rem; }
+  a.card span { color: #9aa6b8; font-size: .95rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cube Mentor &amp; Nightshift Chess</h1>
+  <p class="lead">Two interactive tutors that run entirely in your browser.</p>
+  <div class="cards">
+    <a class="card" href="cube-mentor.html">
+      <h2>Cube Mentor</h2>
+      <span>Scan your Rubik's Cube, see it in 3D, and learn to solve it from beginner to CFOP.</span>
+    </a>
+    <a class="card" href="chess-tutor.html">
+      <h2>Nightshift Chess</h2>
+      <span>A personal chess tutor with a Stockfish engine, move review and game replay.</span>
+    </a>
+  </div>
+</main>
+</body>
+</html>
